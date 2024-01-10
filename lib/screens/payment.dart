@@ -1,0 +1,731 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:get/get.dart';
+import 'package:get_storage/get_storage.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:instaport_customer/components/getdialog.dart';
+import 'package:instaport_customer/components/appbar.dart';
+import 'package:instaport_customer/components/bottomnavigationbar.dart';
+import 'package:instaport_customer/components/getsnackbar.dart';
+import 'package:instaport_customer/constants/colors.dart';
+import 'package:instaport_customer/controllers/address.dart';
+import 'package:instaport_customer/controllers/order.dart';
+import 'package:instaport_customer/controllers/user.dart';
+import 'package:instaport_customer/main.dart';
+import 'package:instaport_customer/models/address_model.dart';
+import 'package:instaport_customer/models/coupon_model.dart';
+import 'package:instaport_customer/models/price_model.dart';
+import 'package:instaport_customer/payment_functions/wallet_payment.dart';
+import 'package:instaport_customer/screens/new_order.dart';
+import 'package:instaport_customer/services/location_service.dart';
+import 'package:instaport_customer/services/uppercase_textfield_formatter.dart';
+import 'package:http/http.dart' as http;
+
+class PaymentForm extends StatefulWidget {
+  const PaymentForm({super.key});
+
+  @override
+  State<PaymentForm> createState() => _PaymentFormState();
+}
+
+final _storage = GetStorage();
+
+class _PaymentFormState extends State<PaymentForm> {
+  OrderController orderController = Get.put(OrderController());
+  AddressController addressController = Get.put(AddressController());
+  UserController userController = Get.put(UserController());
+  TextEditingController couponController = TextEditingController();
+  double amount = 0;
+  int paymentindex = 0;
+  bool showpg = false;
+  InAppWebViewController? webView;
+  double discount = 0.0;
+  Address codAddress = Address(
+    text: "",
+    latitude: 0,
+    longitude: 0,
+    building: "",
+    floor: "",
+    flatno: "",
+    instructions: "",
+    phone_number: "",
+    address: "",
+    zipcode: "",
+  );
+
+  void handlePreFetch() async {
+    var distanceObj = await LocationService().fetchDistance(
+        addressController.pickup.latitude,
+        addressController.pickup.longitude,
+        addressController.drop.latitude,
+        addressController.drop.longitude);
+    var response = await http.get(Uri.parse("$apiUrl/price/get"));
+    final data = PriceManipulationResponse.fromJson(jsonDecode(response.body));
+    setState(() {
+      var calcAmount = 0.0;
+      if (distanceObj.rows[0].elements[0].distance.value <= 4000) {
+        calcAmount = data.priceManipulation.baseOrderCharges + 0.0;
+      } else {
+        calcAmount = (data.priceManipulation.perKilometerCharge *
+                    ((distanceObj.rows[0].elements[0].distance.value - 4000) /
+                        1000))
+                .toPrecision(1) +
+            data.priceManipulation.baseOrderCharges;
+      }
+      var finalAmount =
+          orderController.currentorder.parcel_weight == items[0] ||
+                  orderController.currentorder.parcel_weight == items[1]
+              ? calcAmount
+              : orderController.currentorder.parcel_weight == items[2]
+                  ? calcAmount + 50
+                  : orderController.currentorder.parcel_weight == items[3]
+                      ? calcAmount + 100
+                      : calcAmount + 150;
+
+      amount = finalAmount;
+      orderController.updateAmount(finalAmount);
+    });
+  }
+
+  void _setupJavaScriptHandler() {
+    if (webView != null) {
+      webView!.addJavaScriptHandler(
+        handlerName: 'callFlutterFunction',
+        callback: (args) {
+          _performActionInFlutter();
+        },
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    handlePreFetch();
+  }
+
+  void newClick() async {
+    if (couponController.text.isNotEmpty) {
+      var response =
+          await http.get(Uri.parse("$apiUrl/coupons/${couponController.text}"));
+      var couponData = CouponResponse.fromJson(jsonDecode(response.body));
+      if (couponData.error) {
+        GetSnackbar.info(couponData.message);
+        couponController.text = '';
+        discount = 0.0;
+      } else {
+        if (couponData.coupon.minimumCartValue > amount) {
+          GetSnackbar.info(
+              "Minimum Cart value should be Rs.${couponData.coupon.minimumCartValue}");
+          couponController.text = "";
+        } else {
+          var checkDiscount = amount * (couponData.coupon.percentOff / 100);
+          if (checkDiscount >= couponData.coupon.maxAmount) {
+            discount = couponData.coupon.maxAmount;
+          } else {
+            discount = checkDiscount;
+          }
+        }
+      }
+    }
+    setState(() {});
+  }
+
+  void handleClick() async {
+    final token = await _storage.read("token");
+    var headers = {
+      'Authorization': 'Bearer $token',
+      'Content-Type': 'application/json'
+    };
+    if (paymentindex == 1) {
+      // TODO: WALLET
+      // print(orderController.currentorder.package);
+      walletPayment(orderController, amount, discount);
+    } else if (paymentindex == 2) {
+      // TODO: COD
+
+      print("cod");
+      var request = http.Request('POST', Uri.parse('$apiUrl/order/create'));
+      request.body = json.encode({
+        "pickup": orderController.currentorder.pickup.toJson(),
+        "drop": orderController.currentorder.drop.toJson(),
+        "delivery_type": orderController.currentorder.delivery_type,
+        "parcel_weight": orderController.currentorder.parcel_weight,
+        "phone_number": orderController.currentorder.phone_number,
+        "vehicle": orderController.currentorder.vehicle,
+        "status": "new",
+        "payment_method": "cod",
+        "package": orderController.currentorder.package,
+        "parcel_value": orderController.currentorder.parcel_value,
+        "amount": amount,
+        "payment_address": codAddress
+      });
+      request.headers.addAll(headers);
+      http.StreamedResponse response = await request.send();
+      if (response.statusCode == 200) {
+        var data = jsonDecode(await response.stream.bytesToString());
+        print(data);
+        if (data["error"] == false) {
+          Get.dialog(const OrderSuccessDialog());
+        }
+      } else {
+        print(response.reasonPhrase);
+      }
+    } else if (paymentindex == 0) {
+      // TODO: ONLINE
+      print("Online payment");
+      // setState(() {
+      //   showpg = true;
+      // });
+    }
+    orderController.resetFields();
+    addressController.resetfields();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: false,
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.white,
+        title: const CustomAppBar(
+          title: "Payment Details",
+        ),
+      ),
+      bottomNavigationBar: const CustomBottomNavigationBar(),
+      body: SafeArea(
+        child: GetBuilder<OrderController>(
+            init: OrderController(),
+            builder: (ordercontroller) {
+              return SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 25,
+                  vertical: 20,
+                ),
+                physics: const BouncingScrollPhysics(),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      children: <Widget>[
+                        Row(
+                          children: [
+                            Text(
+                              "Select payment:",
+                              style: GoogleFonts.poppins(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() {
+                            paymentindex = 0;
+                          }),
+                          child: Container(
+                            width: MediaQuery.of(context).size.width,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: paymentindex == 0
+                                    ? accentColor
+                                    : Colors.black12,
+                                width: 2,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x4F000000),
+                                  blurRadius: 18,
+                                  offset: Offset(2, 4),
+                                  spreadRadius: -15,
+                                )
+                              ],
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10.0,
+                                  vertical: 12.0,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.start,
+                                      children: <Widget>[
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 10.0,
+                                            vertical: 3.0,
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceEvenly,
+                                            children: <Widget>[
+                                              Text(
+                                                "Online (Pending)",
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.black,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                )),
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        GetBuilder<UserController>(
+                            init: UserController(),
+                            builder: (controller) {
+                              return GestureDetector(
+                                onTap: () => setState(() {
+                                  if (userController.user.wallet > amount) {
+                                    paymentindex = 1;
+                                  }
+                                }),
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width,
+                                  decoration: BoxDecoration(
+                                    color: controller.user.wallet > amount
+                                        ? Colors.white
+                                        : Colors.black12,
+                                    border: Border.all(
+                                      color: paymentindex == 1
+                                          ? accentColor
+                                          : Colors.black12,
+                                      width: 2,
+                                    ),
+                                    boxShadow: const [
+                                      // BoxShadow(
+                                      //   color: Color(0x4F000000),
+                                      //   blurRadius: 18,
+                                      //   offset: Offset(2, 4),
+                                      //   spreadRadius: -10,
+                                      // )
+                                    ],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10.0, vertical: 12.0),
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 10.0, vertical: 3.0),
+                                      child: Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            "Wallet",
+                                            style: GoogleFonts.poppins(
+                                              color:
+                                                  userController.user.wallet >
+                                                          amount
+                                                      ? Colors.black
+                                                      : Colors.black38,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                          Text(
+                                            "Rs.${userController.user.wallet.toPrecision(1).toString()}",
+                                            style: GoogleFonts.poppins(
+                                              color:
+                                                  userController.user.wallet >
+                                                          amount
+                                                      ? Colors.black
+                                                      : Colors.red,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        GestureDetector(
+                          onTap: () => setState(() {
+                            paymentindex = 2;
+                          }),
+                          child: Container(
+                            width: MediaQuery.of(context).size.width,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: paymentindex == 2
+                                    ? accentColor
+                                    : Colors.black12,
+                                width: 2,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Color(0x4F000000),
+                                  blurRadius: 18,
+                                  offset: Offset(2, 4),
+                                  spreadRadius: -15,
+                                )
+                              ],
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10.0, vertical: 12.0),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.start,
+                                    children: <Widget>[
+                                      Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 10.0, vertical: 3.0),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
+                                          children: <Widget>[
+                                            Text(
+                                              "Cash on Delivery",
+                                              style: GoogleFonts.poppins(
+                                                color: Colors.black,
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 20,
+                        ),
+                        if (paymentindex == 2)
+                          Column(
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    "Select Payment Address: ",
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(
+                                height: 5,
+                              ),
+                            ],
+                          ),
+                        if (paymentindex == 2)
+                          Column(
+                            children: <Widget>[
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    codAddress =
+                                        ordercontroller.currentorder.pickup;
+                                  });
+                                },
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border.all(
+                                      color: codAddress.text ==
+                                              ordercontroller
+                                                  .currentorder.pickup.text
+                                          ? accentColor
+                                          : Colors.black12,
+                                      width: 2,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x4F000000),
+                                        blurRadius: 18,
+                                        offset: Offset(2, 4),
+                                        spreadRadius: -15,
+                                      )
+                                    ],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0,
+                                      vertical: 15.0,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Text(
+                                        ordercontroller
+                                            .currentorder.pickup.address,
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.black,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(
+                                height: 10,
+                              ),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    codAddress =
+                                        ordercontroller.currentorder.drop;
+                                  });
+                                },
+                                child: Container(
+                                  width: MediaQuery.of(context).size.width,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    border: Border.all(
+                                      color: codAddress.text ==
+                                              ordercontroller
+                                                  .currentorder.drop.text
+                                          ? accentColor
+                                          : Colors.black12,
+                                      width: 2,
+                                    ),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                        color: Color(0x4F000000),
+                                        blurRadius: 18,
+                                        offset: Offset(2, 4),
+                                        spreadRadius: -15,
+                                      )
+                                    ],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20.0,
+                                      vertical: 15.0,
+                                    ),
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: Text(
+                                        ordercontroller
+                                            .currentorder.drop.address,
+                                        style: GoogleFonts.poppins(
+                                          color: Colors.black,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        if (paymentindex == 2)
+                          const SizedBox(
+                            height: 20,
+                          ),
+                        Row(
+                          children: [
+                            Text(
+                              "Apply Your Coupon",
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        Container(
+                          height: 50,
+                          width: MediaQuery.of(context).size.width - 50,
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              width: 2,
+                              color: Colors.black.withOpacity(0.1),
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextFormField(
+                                  controller: couponController,
+                                  keyboardType: TextInputType.text,
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.black,
+                                    fontSize: 13,
+                                  ),
+                                  textCapitalization:
+                                      TextCapitalization.characters,
+                                  inputFormatters: [UpperCaseTextFormatter()],
+                                  decoration: InputDecoration(
+                                    border: InputBorder.none,
+                                    hintText: "Enter the coupon code",
+                                    hintStyle: GoogleFonts.poppins(
+                                        fontSize: 14, color: Colors.black38),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      vertical: 15,
+                                      horizontal: 20,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                  onPressed: newClick,
+                                  child: Text(
+                                    "Apply",
+                                    style: GoogleFonts.poppins(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                  ))
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(
+                      height: 15,
+                    ),
+                    Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Text(
+                              "Fare:",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              "Rs. $amount",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Text(
+                              "Discount Amount:",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              "Rs. ${discount.toPrecision(1)}",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: <Widget>[
+                            Text(
+                              "Grand Amount:",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              "Rs. ${amount - discount}",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(
+                          height: 10,
+                        ),
+                        GestureDetector(
+                          onTap: handleClick,
+                          child: Container(
+                            height: 55,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              color: accentColor,
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Continue",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              );
+            }),
+      ),
+    );
+  }
+
+  void _performActionInFlutter() {
+    GetSnackbar.info("this is a function called by javascript using webview");
+  }
+}

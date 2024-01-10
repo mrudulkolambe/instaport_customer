@@ -1,0 +1,90 @@
+import 'dart:convert';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:http/http.dart' as http;
+import 'package:instaport_customer/models/direction_response_model.dart';
+import 'package:instaport_customer/models/location_model.dart';
+import 'package:instaport_customer/models/places_model.dart';
+
+class LocationService {
+  static String key = "AIzaSyCQb159dbqJypdIO1a1o0v_mNgM5eFqVAo";
+
+  Future<List<Place>> fetchPlaces(String input) async {
+    final String endpoint =
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$key';
+
+    final response = await http.get(Uri.parse(endpoint));
+
+    if (response.statusCode == 200) {
+      final predictions =
+          jsonDecode(response.body)['predictions'] as List<dynamic>;
+      List<Place> places = predictions.map((prediction) {
+        return Place.fromJson(prediction);
+      }).toList();
+      return places;
+    } else {
+      throw Exception('Failed to load places');
+    }
+  }
+
+  Future<LocationData> fetchPlaceDetails(String placeId) async {
+    final String detailsEndpoint =
+        'https://maps.googleapis.com/maps/api/place/details/json?place_id=$placeId&fields=geometry,formatted_address&key=$key';
+    final response = await http.get(Uri.parse(detailsEndpoint));
+    if (response.statusCode == 200) {
+      final result = json.decode(response.body)['result'];
+      final location = result['geometry']['location'];
+      return LocationData.fromJson(location);
+    } else {
+      throw Exception('Failed to load place details');
+    }
+  }
+
+  Future<String> fetchAddress(LatLng latlng) async {
+    final String detailsEndpoint =
+        'https://maps.googleapis.com/maps/api/geocode/json?latlng=${latlng.latitude},${latlng.longitude}&key=$key';
+    final response = await http.get(Uri.parse(detailsEndpoint));
+    if (response.statusCode == 200) {
+      final result = json.decode(response.body);
+      if (result["status"] == "REQUEST_DENIED") {
+        return "";
+      } else {
+        return result["results"][0]["formatted_address"];
+      }
+    } else {
+      return "";
+    }
+  }
+
+  Future<DistanceApiResponse> fetchDistance(
+      double srclat, double srclng, double destlat, double destlng) async {
+    String endpoint =
+        'https://maps.googleapis.com/maps/api/distancematrix/json?destinations=$srclat,$srclng&origins=$destlat,$destlng&key=AIzaSyCQb159dbqJypdIO1a1o0v_mNgM5eFqVAo';
+    final response = await http.get(Uri.parse(endpoint));
+
+    if (response.statusCode == 200) {
+      return DistanceApiResponse.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to load places');
+    }
+  }
+
+  Future<DirectionDetailsInfo> fetchDirections(
+      double srclat, double srclng, double destlat, double destlng) async {
+    String endpoint =
+        'https://maps.googleapis.com/maps/api/directions/json?origin=$srclat,$srclng&destination=$destlat,$destlng&key=AIzaSyCQb159dbqJypdIO1a1o0v_mNgM5eFqVAo';
+    var response = await http.get(Uri.parse(endpoint));
+var data = jsonDecode(response.body);
+    if (response.statusCode == 200) {
+      DirectionDetailsInfo directionInfo = DirectionDetailsInfo();
+      directionInfo.e_points = data["routes"][0]["overview_polyline"]["points"];
+      directionInfo.distance_text = data["routes"][0]["legs"][0]["distance"]["text"];
+      directionInfo.distance_value = data["routes"][0]["legs"][0]["distance"]["value"];
+      directionInfo.duration_value = data["routes"][0]["legs"][0]["duration"]["value"];
+      directionInfo.duration_text = data["routes"][0]["legs"][0]["duration"]["text"];
+      return directionInfo;
+    } else {
+      throw Exception('Failed to load places');
+    }
+  }
+
+}
