@@ -24,13 +24,21 @@ class Neworder extends StatefulWidget {
   State<Neworder> createState() => _NeworderState();
 }
 
-final items = ['0-1 kg', '1-5 kg', '5-10 kg', '10-15 kg', '15-20 kg'];
+final List<String> items = [
+  '0-1 kg',
+  '1-5 kg',
+  '5-10 kg',
+  '10-15 kg',
+  '15-20 kg'
+];
+const String type = "now";
 
 class _NeworderState extends State<Neworder> {
   AddressController addressController = AddressController();
   OrderController orderController = OrderController();
   String dropdownValue = items.first;
   double amount = 0.0;
+  String deliveryType = type;
   PriceManipulation priceManipulation = PriceManipulation(
     id: "id",
     perKilometerCharge: 0,
@@ -108,93 +116,121 @@ class _NeworderState extends State<Neworder> {
                 physics: const BouncingScrollPhysics(),
                 child: Column(
                   children: <Widget>[
-                    Row(
-                      children: <Widget>[
-                        Expanded(
-                          child: Container(
-                            height: 80,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: accentColor,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SvgPicture.string(
-                                  '<svg width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.989 13.267 7.599 6.5l5.962 4.707a1.67 1.67 0 0 1 .01 2.62c-.844.675-2.1.402-2.582-.56Z" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.3 4.102c-2.036 2-3.3 4.79-3.3 7.873C1 18.064 5.925 23 12 23s11-4.936 11-11.025c0-5.339-3.786-9.79-8.814-10.807-.92-.186-1.38-.279-1.783.052C12 1.55 12 2.086 12 3.155v1.103" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-                                ),
-                                const SizedBox(
-                                  width: 8,
-                                ),
-                                Column(
+                    GetBuilder<OrderController>(builder: (controller) {
+                      return Row(
+                        children: <Widget>[
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                controller.updateType("now");
+                              },
+                              child: Container(
+                                height: 80,
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color:
+                                        controller.currentorder.delivery_type ==
+                                                "now"
+                                            ? accentColor
+                                            : Colors.white,
+                                    border: Border.all(
+                                      width: 2,
+                                      color: accentColor,
+                                    )),
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      "Deliver Now",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  children: [
+                                    SvgPicture.string(
+                                      '<svg width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.989 13.267 7.599 6.5l5.962 4.707a1.67 1.67 0 0 1 .01 2.62c-.844.675-2.1.402-2.582-.56Z" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.3 4.102c-2.036 2-3.3 4.79-3.3 7.873C1 18.064 5.925 23 12 23s11-4.936 11-11.025c0-5.339-3.786-9.79-8.814-10.807-.92-.186-1.38-.279-1.783.052C12 1.55 12 2.086 12 3.155v1.103" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
                                     ),
-                                    Text(
-                                      "from ₹${priceManipulation.baseOrderCharges}",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    )
+                                    const SizedBox(
+                                      width: 8,
+                                    ),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(
+                                          "Deliver Now",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          "from ₹${priceManipulation.baseOrderCharges}",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        )
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        Expanded(
-                          child: Container(
-                            height: 80,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(10),
-                              color: accentColor,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                SvgPicture.string(
-                                  '<svg width="23" height="25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.131 1.5v2.2M4.868 1.5v2.2M1 12.768c0-4.793 0-7.19 1.384-8.679C3.768 2.6 5.995 2.6 10.45 2.6h2.1c4.455 0 6.682 0 8.066 1.49C22 5.577 22 7.974 22 12.767v.564c0 4.794 0 7.19-1.384 8.68C19.232 23.5 17.005 23.5 12.55 23.5h-2.1c-4.455 0-6.682 0-8.066-1.489C1 20.522 1 18.126 1 13.333v-.565ZM1.553 8.1h19.895" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-                                ),
-                                const SizedBox(
-                                  width: 8,
-                                ),
-                                Column(
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () => controller.updateType("scheduled"),
+                              child: Container(
+                                height: 80,
+                                decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color:
+                                        controller.currentorder.delivery_type ==
+                                                "scheduled"
+                                            ? accentColor
+                                            : Colors.white,
+                                    border: Border.all(
+                                      width: 2,
+                                      color: accentColor,
+                                    )),
+                                child: Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: <Widget>[
-                                    Text(
-                                      "Schedule",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  children: [
+                                    SvgPicture.string(
+                                      '<svg width="23" height="25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.131 1.5v2.2M4.868 1.5v2.2M1 12.768c0-4.793 0-7.19 1.384-8.679C3.768 2.6 5.995 2.6 10.45 2.6h2.1c4.455 0 6.682 0 8.066 1.49C22 5.577 22 7.974 22 12.767v.564c0 4.794 0 7.19-1.384 8.68C19.232 23.5 17.005 23.5 12.55 23.5h-2.1c-4.455 0-6.682 0-8.066-1.489C1 20.522 1 18.126 1 13.333v-.565ZM1.553 8.1h19.895" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
                                     ),
-                                    Text(
-                                      "from ₹${priceManipulation.baseOrderCharges}",
-                                      style: GoogleFonts.poppins(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    )
+                                    const SizedBox(
+                                      width: 8,
+                                    ),
+                                    Column(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: <Widget>[
+                                        Text(
+                                          "Schedule",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        Text(
+                                          "from ₹${priceManipulation.baseOrderCharges}",
+                                          style: GoogleFonts.poppins(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        )
+                                      ],
+                                    ),
                                   ],
                                 ),
-                              ],
+                              ),
                             ),
-                          ),
-                        )
-                      ],
-                    ),
+                          )
+                        ],
+                      );
+                    }),
                     const SizedBox(
                       height: 10,
                     ),
@@ -378,7 +414,6 @@ class _NeworderState extends State<Neworder> {
                                       child: Container(
                                         width:
                                             MediaQuery.of(context).size.width,
-                                        height: 80,
                                         decoration: BoxDecoration(
                                           color: accentColor.withOpacity(0.08),
                                           border: Border.all(
@@ -406,8 +441,10 @@ class _NeworderState extends State<Neworder> {
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
+                                              const SizedBox(
+                                                height: 10,
+                                              ),
                                               Text(
-                                                maxLines: 1,
                                                 controller
                                                         .pickup.text.isNotEmpty
                                                     ? controller.pickup.text
@@ -417,6 +454,7 @@ class _NeworderState extends State<Neworder> {
                                                   fontWeight: FontWeight.w500,
                                                   color: Colors.black54,
                                                 ),
+                                                maxLines: 3,
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ],
@@ -442,7 +480,6 @@ class _NeworderState extends State<Neworder> {
                                       child: Container(
                                         width:
                                             MediaQuery.of(context).size.width,
-                                        height: 80,
                                         decoration: BoxDecoration(
                                             color:
                                                 accentColor.withOpacity(0.08),
@@ -470,6 +507,9 @@ class _NeworderState extends State<Neworder> {
                                                   fontWeight: FontWeight.w500,
                                                 ),
                                               ),
+                                              const SizedBox(
+                                                height: 10,
+                                              ),
                                               Text(
                                                 controller.drop.text.isNotEmpty
                                                     ? controller.drop.text
@@ -480,7 +520,7 @@ class _NeworderState extends State<Neworder> {
                                                   color: Colors.black54,
                                                 ),
                                                 overflow: TextOverflow.ellipsis,
-                                                maxLines: 1,
+                                                maxLines: 3,
                                               ),
                                             ],
                                           ),
@@ -492,7 +532,6 @@ class _NeworderState extends State<Neworder> {
                                     ),
                                     Container(
                                       width: MediaQuery.of(context).size.width,
-                                      height: 80,
                                       decoration: BoxDecoration(
                                           color: accentColor.withOpacity(0.08),
                                           border: Border.all(
@@ -518,6 +557,9 @@ class _NeworderState extends State<Neworder> {
                                                 fontSize: 16,
                                                 fontWeight: FontWeight.w500,
                                               ),
+                                            ),
+                                            const SizedBox(
+                                              height: 10,
                                             ),
                                             Text(
                                               "Add a delivery point for the courier",
@@ -565,7 +607,7 @@ class _NeworderState extends State<Neworder> {
                                 ),
                                 child: Text(
                                   amount == 0.0 &&
-                                          addressController.pickup.text.isEmpty
+                                          (addressController.pickup.text.isEmpty || addressController.drop.text.isEmpty) 
                                       ? "Click here to calculate the estimated fare"
                                       : dropdownValue == items[0] ||
                                               dropdownValue == items[1]
@@ -575,6 +617,7 @@ class _NeworderState extends State<Neworder> {
                                               : dropdownValue == items[3]
                                                   ? "Estimated Fare: Rs.${(amount + 100).toString()}"
                                                   : "Estimated Fare: Rs.${(amount + 150).toString()}",
+                                                  key: Key("$dropdownValue ${addressController.pickup.address} ${addressController.drop.address}"),
                                   style: GoogleFonts.poppins(
                                       color: Colors.black,
                                       fontSize: 13,
@@ -592,12 +635,12 @@ class _NeworderState extends State<Neworder> {
                     ),
                     GetBuilder<OrderController>(
                         init: OrderController(),
-                        builder: (order_controller) {
+                        builder: (orderController) {
                           return GestureDetector(
                             onTap: () {
-                              if (order_controller
+                              if (orderController
                                       .currentorder.pickup.text.isNotEmpty &&
-                                  order_controller
+                                  orderController
                                       .currentorder.drop.text.isNotEmpty) {
                                 Get.to(() => const OrderForm());
                               } else {
@@ -616,8 +659,9 @@ class _NeworderState extends State<Neworder> {
                                 child: Text(
                                   "Continue",
                                   style: GoogleFonts.poppins(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w600),
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                             ),

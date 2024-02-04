@@ -69,7 +69,10 @@ class _LoginState extends State<Login> {
                     child: Center(
                         child: Text(
                       "For Individuals",
-                      style: GoogleFonts.poppins(color: Colors.black),
+                      style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                     )),
                   ),
                   Container(
@@ -91,7 +94,10 @@ class _LoginState extends State<Login> {
                     child: Center(
                       child: Text(
                         "For Business",
-                        style: GoogleFonts.poppins(color: Colors.black),
+                        style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   ),
@@ -115,7 +121,9 @@ class _LoginState extends State<Login> {
                         decoration: InputDecoration(
                           hintText: "Enter your phone number",
                           hintStyle: GoogleFonts.poppins(
-                              fontSize: 14, color: Colors.black38),
+                            fontSize: 14,
+                            color: Colors.black38,
+                          ),
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(

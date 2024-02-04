@@ -85,6 +85,7 @@ class Orders {
   });
 
   factory Orders.fromJson(dynamic json) {
+    print(json["rider"]);
     // final items =
     //     List.from(json["drop"]).map((e) => Address.fromJson(e)).toList();
 
@@ -104,7 +105,7 @@ class Orders {
     final time_stamp = json['time_stamp'] as int;
     final parcel_value = json['parcel_value'];
     final amount = json['amount'] + 0.0;
-    final rider = json[""] == null ? null : Rider.fromJson(json['rider']);
+    final rider = json["rider"] == null ? null : Rider.fromJson(json['rider']);
 
     return Orders(
       pickup: pickup,

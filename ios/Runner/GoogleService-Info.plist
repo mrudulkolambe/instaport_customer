@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyApi9B0kXUWpzSFHcp2z182KunJ0bJZugU</string>
+	<key>GCM_SENDER_ID</key>
+	<string>62094269732</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.instaport.customer</string>
+	<key>PROJECT_ID</key>
+	<string>instaport-application</string>
+	<key>STORAGE_BUCKET</key>
+	<string>instaport-application.appspot.com</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:62094269732:ios:6c2b441864db1ada38a7b1</string>
+	<key>DATABASE_URL</key>
+	<string>https://instaport-application-default-rtdb.firebaseio.com</string>
+</dict>
+</plist>

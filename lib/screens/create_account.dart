@@ -59,7 +59,10 @@ class _CreateAccountState extends State<CreateAccount> {
                       child: Center(
                           child: Text(
                         "For Individuals",
-                        style: GoogleFonts.poppins(color: Colors.black),
+                        style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                       )),
                     ),
                     Container(
@@ -80,7 +83,10 @@ class _CreateAccountState extends State<CreateAccount> {
                       child: Center(
                           child: Text(
                         "For Business",
-                        style: GoogleFonts.poppins(color: Colors.black),
+                        style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                       )),
                     ),
                   ],
@@ -94,7 +100,10 @@ class _CreateAccountState extends State<CreateAccount> {
                       children: [
                         const Label(label: "Full Name: "),
                         TextFormField(
-                          style: GoogleFonts.poppins(color: Colors.black),
+                          style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                           decoration: InputDecoration(
                             hintText: "Enter your full name",
                             hintStyle: GoogleFonts.poppins(
@@ -123,7 +132,10 @@ class _CreateAccountState extends State<CreateAccount> {
                         ),
                         const Label(label: "Phone Number: "),
                         TextFormField(
-                          style: GoogleFonts.poppins(color: Colors.black),
+                          style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                           decoration: InputDecoration(
                             hintText: "Enter your phone number",
                             hintStyle: GoogleFonts.poppins(
@@ -152,7 +164,10 @@ class _CreateAccountState extends State<CreateAccount> {
                         ),
                         const Label(label: "Password: "),
                         TextFormField(
-                          style: GoogleFonts.poppins(color: Colors.black),
+                          style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                           decoration: InputDecoration(
                             hintText: "Enter your Password",
                             hintStyle: GoogleFonts.poppins(

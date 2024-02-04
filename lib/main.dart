@@ -16,17 +16,19 @@ import 'package:instaport_customer/screens/login.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   await GetStorage.init();
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize flutter_inappwebview
-  // FlutterInAppWebViewPlatform.instance.registerPlatformView();
+    await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   runApp(const MyApp());
 }
 
 const apiUrl = "https://instaport-backend-main.vercel.app";
-// const apiUrl = "http://192.168.0.104:1000";
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

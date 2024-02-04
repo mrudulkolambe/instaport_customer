@@ -56,6 +56,10 @@ class OrderController extends GetxController {
     update();
   }
 
+  void updateType(String type) {
+    currentorder.delivery_type = type;
+    update();
+  }
   void updateWeight(String weight) {
     currentorder.parcel_weight = weight;
     update();

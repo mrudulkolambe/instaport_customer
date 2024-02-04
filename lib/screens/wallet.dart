@@ -81,7 +81,7 @@ class _WalletState extends State<Wallet> {
     final String url =
         "https://instaport-transactions.vercel.app/?token=$token";
     final Uri _url = Uri.parse(url);
-
+    print(url);
     if (!await launchUrl(Uri.parse(url),
         mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $_url');

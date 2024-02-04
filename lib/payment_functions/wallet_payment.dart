@@ -17,6 +17,8 @@ void walletPayment(OrderController orderController, double amount, double discou
   };
   var request = http.Request(
       'POST', Uri.parse('$apiUrl/customer-transactions/wallet-order-payment'));
+      print(orderController.currentorder.package);
+      print(orderController.currentorder.phone_number);
   request.body = json.encode({
     "pickup": orderController.currentorder.pickup.toJson(),
     "drop": orderController.currentorder.drop.toJson(),

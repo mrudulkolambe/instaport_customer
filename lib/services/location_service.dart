@@ -10,7 +10,7 @@ class LocationService {
 
   Future<List<Place>> fetchPlaces(String input) async {
     final String endpoint =
-        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$key';
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$key&components=country:in';
 
     final response = await http.get(Uri.parse(endpoint));
 

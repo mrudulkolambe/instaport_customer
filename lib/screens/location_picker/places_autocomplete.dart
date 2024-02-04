@@ -172,7 +172,10 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                             places = data;
                           });
                         },
-                        style: GoogleFonts.poppins(color: Colors.black),
+                        style: GoogleFonts.poppins(
+                          color: Colors.black,
+                          fontSize: 13,
+                        ),
                         decoration: InputDecoration(
                           suffixIcon: IconButton(
                               onPressed: () => _controller.text = "",

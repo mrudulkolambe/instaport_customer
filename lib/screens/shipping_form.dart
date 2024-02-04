@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:instaport_customer/components/appbar.dart';
-import 'package:instaport_customer/components/bottomnavigationbar.dart';
 import 'package:instaport_customer/constants/colors.dart';
 import 'package:instaport_customer/controllers/order.dart';
 import 'package:instaport_customer/screens/payment.dart';
@@ -35,7 +34,6 @@ class _ShippingFormState extends State<ShippingForm> {
           title: "Shipping Details",
         ),
       ),
-      bottomNavigationBar: const CustomBottomNavigationBar(),
       body: SafeArea(
         child: GetBuilder<OrderController>(
             init: OrderController(),
@@ -65,7 +63,6 @@ class _ShippingFormState extends State<ShippingForm> {
                     GestureDetector(
                       onTap: () => orderController.updateVehicle("bike"),
                       child: Container(
-                        height: 80,
                         width: MediaQuery.of(context).size.width,
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -74,7 +71,7 @@ class _ShippingFormState extends State<ShippingForm> {
                                 orderController.currentorder.vehicle == "bike"
                                     ? accentColor
                                     : Colors.black12,
-                            width: 1,
+                            width: 2,
                           ),
                           boxShadow: const [
                             BoxShadow(
@@ -150,7 +147,6 @@ class _ShippingFormState extends State<ShippingForm> {
                     GestureDetector(
                       onTap: () => orderController.updateVehicle("scooty"),
                       child: Container(
-                        height: 80,
                         width: MediaQuery.of(context).size.width,
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -159,7 +155,7 @@ class _ShippingFormState extends State<ShippingForm> {
                                 orderController.currentorder.vehicle == "scooty"
                                     ? accentColor
                                     : Colors.black12,
-                            width: 1,
+                            width: 2,
                           ),
                           boxShadow: const [
                             BoxShadow(
