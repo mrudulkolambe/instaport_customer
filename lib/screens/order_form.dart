@@ -47,8 +47,9 @@ class _OrderFormState extends State<OrderForm> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
-        title: const CustomAppBar(
+        title: CustomAppBar(
           title: "Order Details",
+          back: () => Get.back(),
         ),
       ),
       body: SafeArea(

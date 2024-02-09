@@ -1,6 +1,6 @@
 class DirectionDetailsInfo{
-  int? distance_value;
-  int? duration_value;
+  double? distance_value;
+  double? duration_value;
   String? e_points;
   String? distance_text;
   String? duration_text;

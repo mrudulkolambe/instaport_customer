@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:instaport_customer/components/appbar.dart';
 import 'package:instaport_customer/components/bottomnavigationbar.dart';
+import 'package:instaport_customer/screens/profile.dart';
 
 class AboutUs extends StatelessWidget {
   const AboutUs({super.key});
@@ -14,8 +16,9 @@ class AboutUs extends StatelessWidget {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
-        title: const CustomAppBar(
+        title:  CustomAppBar(
           title: "About",
+          back: () => Get.to(() => const Profile()),
         ),
       ),
       body: SafeArea(

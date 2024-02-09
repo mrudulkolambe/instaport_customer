@@ -2,7 +2,7 @@ import 'package:get/state_manager.dart';
 import 'package:instaport_customer/models/address_model.dart';
 
 class AddressController extends GetxController {
-    var initialaddress = Address(
+  var initialaddress = Address(
     text: "",
     latitude: 0.0,
     longitude: 0.0,
@@ -38,6 +38,16 @@ class AddressController extends GetxController {
 
   List<Address> droplocations = [];
 
+  void updateDropLocation(int index, Address updatedLocation) {
+    droplocations[index] = updatedLocation;
+    update();
+  }
+
+  void removeDropLocation(int index) {
+    droplocations.removeAt(index);
+    update();
+  }
+
   void updateAddress(String type, Address data) {
     if (type == "pickup") {
       pickup = data;
@@ -47,19 +57,17 @@ class AddressController extends GetxController {
     update();
   }
 
-  void update123(String type, Address data) {
-    if (type == "pickup") {
-      droplocations[0] = data;
-      // pickup.value = data;
-      update();
-    }
+  void addNewDropLocation(Address address) {
+    droplocations.add(address); 
+    update(); 
   }
-  
-  void resetfields(){
+
+  void resetfields() {
     pickup = initialaddress;
     drop = initialaddress;
+    droplocations = [];
     update();
-  } 
+  }
 }
 
 // void updateModel({

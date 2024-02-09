@@ -30,8 +30,9 @@ class _ShippingFormState extends State<ShippingForm> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
-        title: const CustomAppBar(
+        title: CustomAppBar(
           title: "Shipping Details",
+          back: () => Get.back(),
         ),
       ),
       body: SafeArea(

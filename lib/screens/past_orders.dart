@@ -47,13 +47,12 @@ class PastOrdersState extends State<PastOrders> {
         final data = PastOrderResponse.fromJson(json.decode(response.body));
         setState(() {
           orders = data.orders;
-          print(data.orders);
           loading = false;
         });
         if (data.error) {
         } else {}
       } catch (error) {
-        print(error);
+        print("Error: $error");
       }
     } else {
       print("error");
@@ -67,7 +66,10 @@ class PastOrdersState extends State<PastOrders> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         automaticallyImplyLeading: false,
-        title: const CustomAppBar(title: "Orders"),
+        title: CustomAppBar(
+          title: "Orders",
+          back: () => Get.back(),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(

@@ -26,8 +26,9 @@ class _ProfileState extends State<Profile> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
-        title: const CustomAppBar(
+        title: CustomAppBar(
           title: "Profile",
+          back: () => Get.back(),
         ),
       ),
       body: SafeArea(

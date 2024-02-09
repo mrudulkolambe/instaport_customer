@@ -19,13 +19,13 @@ class PriceManipulationResponse {
 
 class PriceManipulation {
   String id;
-  int perKilometerCharge;
-  int additionalPerKilometerCharge;
-  int additionalPickupCharge;
-  int securityFeesCharges;
-  int baseOrderCharges;
-  int instaportCommission;
-  int additionalDropCharge;
+  double perKilometerCharge;
+  double additionalPerKilometerCharge;
+  double additionalPickupCharge;
+  double securityFeesCharges;
+  double baseOrderCharges;
+  double instaportCommission;
+  double additionalDropCharge;
 
   PriceManipulation({
     required this.id,
@@ -40,13 +40,13 @@ class PriceManipulation {
 
   factory PriceManipulation.fromJson(dynamic json) {
     final id = json['_id'] as String;
-    final perKilometerCharge = json['per_kilometer_charge'] as int;
-    final additionalPerKilometerCharge = json['additional_per_kilometer_charge'] as int;
-    final additionalPickupCharge = json['additional_pickup_charge'] as int;
-    final securityFeesCharges = json['security_fees_charges'] as int;
-    final baseOrderCharges = json['base_order_charges'] as int;
-    final instaportCommission = json['instaport_commission'] as int;
-    final additionalDropCharge = json['additional_drop_charge'] as int;
+    final perKilometerCharge = json['per_kilometer_charge'] + 0.0 as double;
+    final additionalPerKilometerCharge = json['additional_per_kilometer_charge'] + 0.0 as double;
+    final additionalPickupCharge = json['additional_pickup_charge'] + 0.0 as double;
+    final securityFeesCharges = json['security_fees_charges'] + 0.0 as double;
+    final baseOrderCharges = json['base_order_charges'] + 0.0 as double;
+    final instaportCommission = json['instaport_commission'] + 0.0 as double;
+    final additionalDropCharge = json['additional_drop_charge'] + 0.0 as double;
     return PriceManipulation(
       id: id,
       perKilometerCharge: perKilometerCharge,

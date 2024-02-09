@@ -10,6 +10,8 @@ class Address {
   String phone_number;
   String address;
   String name;
+  String? time;
+  String? date;
 
   Address({
     required this.text,
@@ -21,6 +23,8 @@ class Address {
     required this.phone_number,
     required this.address,
     required this.name,
+    this.date,
+    this.time,
   });
 
   factory Address.fromJson(dynamic json) {
@@ -33,6 +37,8 @@ class Address {
     final phone_number = json['phone_number'] as String;
     final address = json['address'] as String;
     final name = json['name'] as String;
+    final time = json['date'];
+    final date = json['time'];
     // final address = json['address'] as String;
     return Address(
       text: text,
@@ -44,6 +50,8 @@ class Address {
       phone_number: phone_number,
       address: address,
       name: name,
+      time: time,
+      date: date,
     );
   }
 
@@ -58,6 +66,8 @@ class Address {
       'phone_number': phone_number,
       'address': address,
       'name': name,
+      'date': date,
+      'time': time,
     };
   }
 }

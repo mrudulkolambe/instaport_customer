@@ -3,10 +3,10 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:instaport_customer/constants/colors.dart';
 import 'package:instaport_customer/screens/faq.dart';
+import 'package:instaport_customer/screens/new_order.dart';
 import 'package:instaport_customer/screens/past_orders.dart';
 import 'package:instaport_customer/screens/home.dart';
 import 'package:instaport_customer/screens/profile.dart';
-import 'package:instaport_customer/screens/test_page.dart';
 
 class CustomBottomNavigationBar extends StatelessWidget {
   const CustomBottomNavigationBar({super.key});
@@ -38,7 +38,7 @@ class CustomBottomNavigationBar extends StatelessWidget {
               ),
             ),
             IconButton(
-              onPressed: () => Get.to(() => const TestPage()),
+              onPressed: () => Get.to(() => const Neworder()),
               icon: SvgPicture.string(
                 '<?xml version="1.0" encoding="UTF-8"?><svg width="800px" height="800px" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><g data-name="add"><g fill="none" stroke="#000" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="12" x2="12" y1="19" y2="5"/><line x1="5" x2="19" y1="12" y2="12"/></g></g></svg>',
                 height: 30,

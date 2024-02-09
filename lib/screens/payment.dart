@@ -35,7 +35,7 @@ class _PaymentFormState extends State<PaymentForm> {
   AddressController addressController = Get.put(AddressController());
   UserController userController = Get.put(UserController());
   TextEditingController couponController = TextEditingController();
-  int commission = 0;
+  double commission = 0;
   bool fetchLoading = true;
   double amount = 0;
   int paymentindex = 0;
@@ -54,39 +54,73 @@ class _PaymentFormState extends State<PaymentForm> {
     name: "",
   );
 
-  void handlePreFetch() async {
-    var distanceObj = await LocationService().fetchDistance(
-      addressController.pickup.latitude,
-      addressController.pickup.longitude,
-      addressController.drop.latitude,
-      addressController.drop.longitude,
-    );
+  void handlePreFetch(double srclat, double srclng, double destlat,
+      double destlng, List<Address> droplocations) async {
+    double totalDistance = 0;
+    double totalAmount = 0;
     var response = await http.get(Uri.parse("$apiUrl/price/get"));
     final data = PriceManipulationResponse.fromJson(jsonDecode(response.body));
-    setState(() {
-      commission = data.priceManipulation.instaportCommission;
-      var calcAmount = 0.0;
-      if (distanceObj.rows[0].elements[0].distance.value <= 4000) {
-        calcAmount = data.priceManipulation.baseOrderCharges + 0.0;
-      } else {
-        calcAmount = (data.priceManipulation.perKilometerCharge *
-                    ((distanceObj.rows[0].elements[0].distance.value - 4000) /
-                        1000))
-                .toPrecision(1) +
-            data.priceManipulation.baseOrderCharges;
+    if (srclat == 0.0 && srclng == 0.0 && destlat == 0.0 && destlng == 0.0) {
+      return;
+    } else {
+      setState(() {
+        commission = data.priceManipulation.instaportCommission;
+        fetchLoading = true;
+      });
+      var distanceMain = await LocationService()
+          .fetchDistance(srclat, srclng, destlat, destlng);
+      totalDistance = (distanceMain.rows[0].elements[0].distance.value / 1000);
+      totalAmount = (distanceMain.rows[0].elements[0].distance.value / 1000) *
+          data.priceManipulation.perKilometerCharge;
+      if (droplocations.isNotEmpty) {
+        for (int i = 0; i < droplocations.length; i++) {
+          double srcLat, srcLng, destLat, destLng;
+          if (i == 0) {
+            srcLat = destlat;
+            srcLng = destlng;
+            destLat = droplocations[i].latitude;
+            destLng = droplocations[i].longitude;
+          } else {
+            srcLat = droplocations[i - 1].latitude;
+            srcLng = droplocations[i - 1].longitude;
+            destLat = droplocations[i].latitude;
+            destLng = droplocations[i].longitude;
+          }
+          var locationData = await LocationService()
+              .fetchDistance(srcLat, srcLng, destLat, destLng);
+          totalDistance +=
+              locationData.rows[0].elements[0].distance.value / 1000;
+          totalAmount +=
+              (locationData.rows[0].elements[0].distance.value / 1000) *
+                  data.priceManipulation.additionalPerKilometerCharge;
+        }
       }
-      var finalAmount =
-          orderController.currentorder.parcel_weight == items[0] ||
-                  orderController.currentorder.parcel_weight == items[1]
-              ? calcAmount
-              : orderController.currentorder.parcel_weight == items[2]
-                  ? calcAmount + 50
-                  : orderController.currentorder.parcel_weight == items[3]
-                      ? calcAmount + 100
-                      : calcAmount + 150;
-
-      amount = finalAmount;
-      orderController.updateAmount(finalAmount);
+    }
+    setState(() {
+      final OrderController orderController = Get.find();
+      if (totalDistance <= 4.0) {
+        var finalAmount =
+            orderController.currentorder.parcel_weight == items[0] ||
+                    orderController.currentorder.parcel_weight == items[1]
+                ? data.priceManipulation.baseOrderCharges
+                : orderController.currentorder.parcel_weight == items[2]
+                    ? data.priceManipulation.baseOrderCharges + 50
+                    : orderController.currentorder.parcel_weight == items[3]
+                        ? data.priceManipulation.baseOrderCharges + 100
+                        : data.priceManipulation.baseOrderCharges + 150;
+        amount = finalAmount;
+      } else {
+        var finalAmount =
+            orderController.currentorder.parcel_weight == items[0] ||
+                    orderController.currentorder.parcel_weight == items[1]
+                ? totalAmount
+                : orderController.currentorder.parcel_weight == items[2]
+                    ? totalAmount + 50
+                    : orderController.currentorder.parcel_weight == items[3]
+                        ? totalAmount + 100
+                        : totalAmount + 150;
+        amount = finalAmount + data.priceManipulation.baseOrderCharges;
+      }
       fetchLoading = false;
     });
   }
@@ -108,7 +142,7 @@ class _PaymentFormState extends State<PaymentForm> {
     setState(() {
       fetchLoading = true;
     });
-    handlePreFetch();
+    handlePreFetch(orderController.currentorder.pickup.latitude, orderController.currentorder.pickup.longitude, orderController.currentorder.drop.latitude, orderController.currentorder.drop.longitude, addressController.droplocations);
   }
 
   void newClick() async {
@@ -167,6 +201,7 @@ class _PaymentFormState extends State<PaymentForm> {
         "parcel_value": orderController.currentorder.parcel_value,
         "amount": amount - discount,
         "commission": commission,
+        'droplocations': addressController.droplocations
       });
       request.headers.addAll(headers);
       http.StreamedResponse response = await request.send();
@@ -197,12 +232,12 @@ class _PaymentFormState extends State<PaymentForm> {
         "amount": amount,
         "payment_address": codAddress,
         "commission": commission,
+        'droplocations': addressController.droplocations
       });
       request.headers.addAll(headers);
       http.StreamedResponse response = await request.send();
       if (response.statusCode == 200) {
         var data = jsonDecode(await response.stream.bytesToString());
-        print(data);
         if (data["error"] == false) {
           Get.dialog(const OrderSuccessDialog());
         }
@@ -216,8 +251,8 @@ class _PaymentFormState extends State<PaymentForm> {
       //   showpg = true;
       // });
     }
-    // orderController.resetFields();
-    // addressController.resetfields();
+    orderController.resetFields();
+    addressController.resetfields();
   }
 
   @override
@@ -229,8 +264,9 @@ class _PaymentFormState extends State<PaymentForm> {
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
-        title: const CustomAppBar(
+        title: CustomAppBar(
           title: "Payment Details",
+          back: () => Get.back(),
         ),
       ),
       body: SafeArea(
@@ -602,6 +638,72 @@ class _PaymentFormState extends State<PaymentForm> {
                                       ),
                                     ),
                                   ),
+                                  ...addressController.droplocations
+                                      .asMap()
+                                      .entries
+                                      .map(
+                                        (e) => Column(
+                                          children: [
+                                            const SizedBox(
+                                              height: 10,
+                                            ),
+                                            GestureDetector(
+                                              onTap: () {
+                                                setState(() {
+                                                  codAddress = e.value;
+                                                });
+                                              },
+                                              child: Container(
+                                                width: MediaQuery.of(context)
+                                                    .size
+                                                    .width,
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  border: Border.all(
+                                                    color: codAddress.text ==
+                                                            e.value.text
+                                                        ? accentColor
+                                                        : Colors.black12,
+                                                    width: 2,
+                                                  ),
+                                                  boxShadow: const [
+                                                    BoxShadow(
+                                                      color: Color(0x4F000000),
+                                                      blurRadius: 18,
+                                                      offset: Offset(2, 4),
+                                                      spreadRadius: -15,
+                                                    )
+                                                  ],
+                                                  borderRadius:
+                                                      BorderRadius.circular(10),
+                                                ),
+                                                child: Padding(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 20.0,
+                                                    vertical: 15.0,
+                                                  ),
+                                                  child: SingleChildScrollView(
+                                                    scrollDirection:
+                                                        Axis.horizontal,
+                                                    child: Text(
+                                                      e.value.address,
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        color: Colors.black,
+                                                        fontSize: 16,
+                                                        fontWeight:
+                                                            FontWeight.w500,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                      .toList(),
                                 ],
                               ),
                             if (paymentindex == 2)
@@ -691,7 +793,7 @@ class _PaymentFormState extends State<PaymentForm> {
                                   ),
                                 ),
                                 Text(
-                                  "Rs. $amount",
+                                  "Rs. ${amount.toPrecision(1)}",
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
@@ -735,7 +837,7 @@ class _PaymentFormState extends State<PaymentForm> {
                                   ),
                                 ),
                                 Text(
-                                  "Rs. ${amount - discount}",
+                                  "Rs. ${(amount - discount).toPrecision(1)}",
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,

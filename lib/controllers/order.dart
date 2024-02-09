@@ -16,6 +16,7 @@ class OrderController extends GetxController {
     parcel_weight: "0-1 kg",
     phone_number: "",
     notify_sms: false,
+    droplocations: addressController.droplocations,
     courier_bag: false,
     vehicle: "scooty",
     status: "new",
@@ -25,6 +26,7 @@ class OrderController extends GetxController {
     time_stamp: 0,
     parcel_value: 0,
     amount: 0.0,
+    orderStatus: []
   );
 
   var currentorder = Orders(
@@ -40,10 +42,12 @@ class OrderController extends GetxController {
     status: "new",
     payment_method: "cod",
     customer: "",
+    droplocations: [],
     package: "",
     time_stamp: 0,
     parcel_value: 0,
     amount: 0.0,
+    orderStatus: [],
   );
 
   void updateCurrentOrder(Orders data) {

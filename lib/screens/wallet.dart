@@ -18,8 +18,8 @@ import 'package:instaport_customer/controllers/user.dart';
 import 'package:instaport_customer/main.dart';
 import 'package:instaport_customer/models/transaction_model.dart';
 import 'package:instaport_customer/models/user_model.dart';
+import 'package:instaport_customer/screens/home.dart';
 import 'package:instaport_customer/screens/wallet_topup.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 
 class Wallet extends StatefulWidget {
@@ -76,17 +76,6 @@ class _WalletState extends State<Wallet> {
     });
   }
 
-  Future<void> _launchUrl() async {
-    final token = await _storage.read("token");
-    final String url =
-        "https://instaport-transactions.vercel.app/?token=$token";
-    final Uri _url = Uri.parse(url);
-    print(url);
-    if (!await launchUrl(Uri.parse(url),
-        mode: LaunchMode.externalApplication)) {
-      throw Exception('Could not launch $_url');
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,10 +83,12 @@ class _WalletState extends State<Wallet> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
+        surfaceTintColor: Colors.white,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
-        title: const CustomAppBar(
+        title: CustomAppBar(
           title: "My Wallet",
+          back: () => Get.to(() => const Home()),
         ),
       ),
       body: SafeArea(

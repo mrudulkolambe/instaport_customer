@@ -90,8 +90,8 @@ class Element {
   });
 
   factory Element.fromJson(dynamic json) {
-    final distance = Distance.fromJson(json['distance']);
-    final duration = Distance.fromJson(json['duration']);
+    final distance = json["distance"] == null ? Distance(text: "0", value: 0.0) :  Distance.fromJson(json['distance']);
+    final duration = json["duration"] == null ? Distance(text: "0", value: 0.0) :  Distance.fromJson(json['duration']);
     final status = json['status'] as String;
 
     return Element(
