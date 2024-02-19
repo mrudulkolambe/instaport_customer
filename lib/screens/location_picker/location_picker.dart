@@ -10,6 +10,7 @@ import 'package:instaport_customer/controllers/order.dart';
 import 'package:instaport_customer/models/address_model.dart';
 import 'package:instaport_customer/screens/new_order.dart';
 import 'package:instaport_customer/utils/timeformatter.dart';
+import 'package:uuid/uuid.dart';
 
 class LocationPicker extends StatefulWidget {
   final double latitude;
@@ -49,24 +50,28 @@ class _LocationPickerState extends State<LocationPicker> {
         const SnackBar(content: Text('Fill the form')),
       );
     } else {
+      var uuid = const Uuid();
+      String key = uuid.v1();
       var data = Address(
-          text: widget.text,
-          latitude: widget.latitude,
-          longitude: widget.longitude,
-          building_and_flat: _buildingcontroller.text,
-          floor_and_wing: _floorcontroller.text,
-          instructions: _instructioncontroller.text,
-          phone_number: _phonecontroller.text,
-          address: _addresscontroller.text,
-          name: _namecontroller.text,
-          date: _datecontroller.text,
-          time: _timecontroller.text);
+        text: widget.text,
+        latitude: widget.latitude,
+        longitude: widget.longitude,
+        building_and_flat: _buildingcontroller.text,
+        floor_and_wing: _floorcontroller.text,
+        instructions: _instructioncontroller.text,
+        phone_number: _phonecontroller.text,
+        address: _addresscontroller.text,
+        name: _namecontroller.text,
+        date: _datecontroller.text,
+        time: _timecontroller.text,
+        key: key,
+      );
       orderController.updateAddress(widget.index, data);
       if (widget.index == 0) {
         addressController.updateAddress("pickup", data);
       } else if (widget.index == 1) {
         addressController.updateAddress("drop", data);
-      }else {
+      } else {
         addressController.updateDropLocation(widget.index - 2, data);
       }
       Get.to(() => const Neworder());
@@ -215,19 +220,17 @@ class _LocationPickerState extends State<LocationPicker> {
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                width: 2, color: accentColor),
+                            borderSide:
+                                const BorderSide(width: 2, color: accentColor),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 15, horizontal: 15),
@@ -276,13 +279,12 @@ class _LocationPickerState extends State<LocationPicker> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                width: 2, color: accentColor),
+                            borderSide:
+                                const BorderSide(width: 2, color: accentColor),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 15, horizontal: 15),
@@ -295,8 +297,7 @@ class _LocationPickerState extends State<LocationPicker> {
                         ),
                       if (orderController.currentorder.delivery_type ==
                           "scheduled")
-                        const Label(
-                            label: "When to arrive at this address: "),
+                        const Label(label: "When to arrive at this address: "),
                       if (orderController.currentorder.delivery_type ==
                           "scheduled")
                         Row(
@@ -470,8 +471,7 @@ class _LocationPickerState extends State<LocationPicker> {
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           errorBorder: OutlineInputBorder(
                             borderSide:
@@ -481,13 +481,12 @@ class _LocationPickerState extends State<LocationPicker> {
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                width: 2, color: accentColor),
+                            borderSide:
+                                const BorderSide(width: 2, color: accentColor),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 15, horizontal: 15),
@@ -513,19 +512,17 @@ class _LocationPickerState extends State<LocationPicker> {
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                width: 2, color: accentColor),
+                            borderSide:
+                                const BorderSide(width: 2, color: accentColor),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 15, horizontal: 15),
@@ -551,19 +548,17 @@ class _LocationPickerState extends State<LocationPicker> {
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                width: 2, color: accentColor),
+                            borderSide:
+                                const BorderSide(width: 2, color: accentColor),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                             vertical: 15,
@@ -591,19 +586,17 @@ class _LocationPickerState extends State<LocationPicker> {
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
                             borderSide: BorderSide(
-                                width: 2,
-                                color: Colors.black.withOpacity(0.1)),
+                                width: 2, color: Colors.black.withOpacity(0.1)),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(10),
-                            borderSide: const BorderSide(
-                                width: 2, color: accentColor),
+                            borderSide:
+                                const BorderSide(width: 2, color: accentColor),
                           ),
                           contentPadding: const EdgeInsets.symmetric(
                               vertical: 15, horizontal: 15),

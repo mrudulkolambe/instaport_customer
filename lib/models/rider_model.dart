@@ -40,6 +40,7 @@ class Rider {
   });
 
   factory Rider.fromJson(dynamic json) {
+    print("Rider wallet: ${json["wallet_amount"]}");
     final id = json['_id'] as String;
     final fullname = json['fullname'] as String;
     final mobileno = json['mobileno'] as String;

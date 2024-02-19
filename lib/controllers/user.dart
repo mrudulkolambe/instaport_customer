@@ -9,6 +9,7 @@ class UserController extends GetxController {
     verified: false,
     role: "customer",
     wallet: 0,
+    holdAmount: 0,
   );
 
   void updateUser(User data) {

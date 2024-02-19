@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
@@ -15,6 +16,7 @@ import 'package:instaport_customer/controllers/user.dart';
 import 'package:instaport_customer/main.dart';
 import 'package:instaport_customer/models/address_model.dart';
 import 'package:instaport_customer/models/coupon_model.dart';
+import 'package:instaport_customer/models/order_model.dart';
 import 'package:instaport_customer/models/price_model.dart';
 import 'package:instaport_customer/screens/new_order.dart';
 import 'package:instaport_customer/services/location_service.dart';
@@ -46,6 +48,7 @@ class _PaymentFormState extends State<PaymentForm> {
     text: "",
     latitude: 0,
     longitude: 0,
+    key: "",
     building_and_flat: "",
     floor_and_wing: "",
     instructions: "",
@@ -119,7 +122,7 @@ class _PaymentFormState extends State<PaymentForm> {
                     : orderController.currentorder.parcel_weight == items[3]
                         ? totalAmount + 100
                         : totalAmount + 150;
-        amount = finalAmount + data.priceManipulation.baseOrderCharges;
+        amount = finalAmount;
       }
       fetchLoading = false;
     });
@@ -142,7 +145,12 @@ class _PaymentFormState extends State<PaymentForm> {
     setState(() {
       fetchLoading = true;
     });
-    handlePreFetch(orderController.currentorder.pickup.latitude, orderController.currentorder.pickup.longitude, orderController.currentorder.drop.latitude, orderController.currentorder.drop.longitude, addressController.droplocations);
+    handlePreFetch(
+        orderController.currentorder.pickup.latitude,
+        orderController.currentorder.pickup.longitude,
+        orderController.currentorder.drop.latitude,
+        orderController.currentorder.drop.longitude,
+        addressController.droplocations);
   }
 
   void newClick() async {
@@ -207,8 +215,12 @@ class _PaymentFormState extends State<PaymentForm> {
       http.StreamedResponse response = await request.send();
       if (response.statusCode == 200) {
         var data = jsonDecode(await response.stream.bytesToString());
-        if (data["error"] == false) {
-          Get.dialog(const OrderSuccessDialog());
+        var orderData = OrderResponse.fromJson(data);
+        if (orderData.error == false) {
+          Get.dialog(const OrderSuccessDialog(), barrierDismissible: false);
+          DatabaseReference ref =
+              FirebaseDatabase.instance.ref("orders/${orderData.order.id}");
+          await ref.set({"order": data["order"], "modified": ""});
         } else {
           print(data["message"]);
         }
@@ -238,8 +250,12 @@ class _PaymentFormState extends State<PaymentForm> {
       http.StreamedResponse response = await request.send();
       if (response.statusCode == 200) {
         var data = jsonDecode(await response.stream.bytesToString());
-        if (data["error"] == false) {
-          Get.dialog(const OrderSuccessDialog());
+        var orderData = OrderResponse.fromJson(data);
+        if (orderData.error == false) {
+          Get.dialog(const OrderSuccessDialog(), barrierDismissible: false);
+          DatabaseReference ref =
+              FirebaseDatabase.instance.ref("orders/${orderData.order.id}");
+          await ref.set({"order": data["order"], "modified": ""});
         }
       } else {
         print(response.reasonPhrase);

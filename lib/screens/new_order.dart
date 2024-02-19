@@ -78,36 +78,44 @@ class _NeworderState extends State<Neworder> {
     });
   }
 
-  void handlePreFetch(double srclat, double srclng, double destlat,
-      double destlng, List<Address> droplocations) async {
+  void handlePreFetch() async {
+    final AddressController addressController = Get.find();
     double totalDistance = 0;
     double totalAmount = 0;
     var response = await http.get(Uri.parse("$apiUrl/price/get"));
     final data = PriceManipulationResponse.fromJson(jsonDecode(response.body));
-    if (srclat == 0.0 && srclng == 0.0 && destlat == 0.0 && destlng == 0.0) {
+    if (addressController.pickup.latitude == 0.0 ||
+        addressController.pickup.longitude == 0.0 ||
+        addressController.drop.latitude == 0.0 ||
+        addressController.drop.longitude == 0.0) {
+      print("object");
       return;
     } else {
+      print("object1");
       setState(() {
         predictionLoading = true;
       });
-      var distanceMain = await LocationService()
-          .fetchDistance(srclat, srclng, destlat, destlng);
+      var distanceMain = await LocationService().fetchDistance(
+          addressController.pickup.latitude,
+          addressController.pickup.longitude,
+          addressController.drop.latitude,
+          addressController.drop.longitude);
       totalDistance = (distanceMain.rows[0].elements[0].distance.value / 1000);
       totalAmount = (distanceMain.rows[0].elements[0].distance.value / 1000) *
           data.priceManipulation.perKilometerCharge;
-      if (droplocations.isNotEmpty) {
-        for (int i = 0; i < droplocations.length; i++) {
+      if (addressController.droplocations.isNotEmpty) {
+        for (int i = 0; i < addressController.droplocations.length; i++) {
           double srcLat, srcLng, destLat, destLng;
           if (i == 0) {
-            srcLat = destlat;
-            srcLng = destlng;
-            destLat = droplocations[i].latitude;
-            destLng = droplocations[i].longitude;
+            srcLat = addressController.drop.latitude;
+            srcLng = addressController.drop.longitude;
+            destLat = addressController.droplocations[i].latitude;
+            destLng = addressController.droplocations[i].longitude;
           } else {
-            srcLat = droplocations[i - 1].latitude;
-            srcLng = droplocations[i - 1].longitude;
-            destLat = droplocations[i].latitude;
-            destLng = droplocations[i].longitude;
+            srcLat = addressController.droplocations[i - 1].latitude;
+            srcLng = addressController.droplocations[i - 1].longitude;
+            destLat = addressController.droplocations[i].latitude;
+            destLng = addressController.droplocations[i].longitude;
           }
           var locationData = await LocationService()
               .fetchDistance(srcLat, srcLng, destLat, destLng);
@@ -142,7 +150,7 @@ class _NeworderState extends State<Neworder> {
                     : orderController.currentorder.parcel_weight == items[3]
                         ? totalAmount + 100
                         : totalAmount + 150;
-        amount = finalAmount + data.priceManipulation.baseOrderCharges;
+        amount = finalAmount;
       }
       predictionLoading = false;
     });
@@ -182,129 +190,121 @@ class _NeworderState extends State<Neworder> {
                     physics: const BouncingScrollPhysics(),
                     child: Column(
                       children: <Widget>[
-                        GetBuilder<OrderController>(
-                            init: OrderController(),
-                            builder: (controller) {
-                              return Row(
-                                children: <Widget>[
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () {
-                                        controller.updateType("now");
-                                      },
-                                      child: Container(
-                                        height: 80,
-                                        decoration: BoxDecoration(
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                          color: controller.currentorder
-                                                      .delivery_type ==
-                                                  "now"
-                                              ? accentColor
-                                              : Colors.white,
-                                          border: Border.all(
-                                            width: 2,
-                                            color: accentColor,
+                        Row(
+                          children: <Widget>[
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () {
+                                  ordercontroller.updateType("now");
+                                },
+                                child: Container(
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(10),
+                                    color: ordercontroller
+                                                .currentorder.delivery_type ==
+                                            "now"
+                                        ? accentColor
+                                        : Colors.white,
+                                    border: Border.all(
+                                      width: 2,
+                                      color: accentColor,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SvgPicture.string(
+                                        '<svg width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.989 13.267 7.599 6.5l5.962 4.707a1.67 1.67 0 0 1 .01 2.62c-.844.675-2.1.402-2.582-.56Z" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.3 4.102c-2.036 2-3.3 4.79-3.3 7.873C1 18.064 5.925 23 12 23s11-4.936 11-11.025c0-5.339-3.786-9.79-8.814-10.807-.92-.186-1.38-.279-1.783.052C12 1.55 12 2.086 12 3.155v1.103" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                                      ),
+                                      const SizedBox(
+                                        width: 8,
+                                      ),
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: <Widget>[
+                                          Text(
+                                            "Deliver Now",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        ),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            SvgPicture.string(
-                                              '<svg width="24" height="24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M10.989 13.267 7.599 6.5l5.962 4.707a1.67 1.67 0 0 1 .01 2.62c-.844.675-2.1.402-2.582-.56Z" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4.3 4.102c-2.036 2-3.3 4.79-3.3 7.873C1 18.064 5.925 23 12 23s11-4.936 11-11.025c0-5.339-3.786-9.79-8.814-10.807-.92-.186-1.38-.279-1.783.052C12 1.55 12 2.086 12 3.155v1.103" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+                                          Text(
+                                            "from ₹${priceManipulation.baseOrderCharges}",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
                                             ),
-                                            const SizedBox(
-                                              width: 8,
-                                            ),
-                                            Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: <Widget>[
-                                                Text(
-                                                  "Deliver Now",
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  "from ₹${priceManipulation.baseOrderCharges}",
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                )
-                                              ],
-                                            ),
-                                          ],
-                                        ),
+                                          )
+                                        ],
                                       ),
-                                    ),
+                                    ],
                                   ),
-                                  const SizedBox(
-                                    width: 10,
-                                  ),
-                                  Expanded(
-                                    child: GestureDetector(
-                                      onTap: () =>
-                                          controller.updateType("scheduled"),
-                                      child: Container(
-                                        height: 80,
-                                        decoration: BoxDecoration(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            color: controller.currentorder
-                                                        .delivery_type ==
-                                                    "scheduled"
-                                                ? accentColor
-                                                : Colors.white,
-                                            border: Border.all(
-                                              width: 2,
-                                              color: accentColor,
-                                            )),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.center,
-                                          children: [
-                                            SvgPicture.string(
-                                              '<svg width="23" height="25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.131 1.5v2.2M4.868 1.5v2.2M1 12.768c0-4.793 0-7.19 1.384-8.679C3.768 2.6 5.995 2.6 10.45 2.6h2.1c4.455 0 6.682 0 8.066 1.49C22 5.577 22 7.974 22 12.767v.564c0 4.794 0 7.19-1.384 8.68C19.232 23.5 17.005 23.5 12.55 23.5h-2.1c-4.455 0-6.682 0-8.066-1.489C1 20.522 1 18.126 1 13.333v-.565ZM1.553 8.1h19.895" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-                                            ),
-                                            const SizedBox(
-                                              width: 8,
-                                            ),
-                                            Column(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: <Widget>[
-                                                Text(
-                                                  "Schedule",
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.bold,
-                                                  ),
-                                                ),
-                                                Text(
-                                                  "from ₹${priceManipulation.baseOrderCharges}",
-                                                  style: GoogleFonts.poppins(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                )
-                                              ],
-                                            ),
-                                          ],
-                                        ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(
+                              width: 10,
+                            ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () =>
+                                    ordercontroller.updateType("scheduled"),
+                                child: Container(
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(10),
+                                      color: ordercontroller
+                                                  .currentorder.delivery_type ==
+                                              "scheduled"
+                                          ? accentColor
+                                          : Colors.white,
+                                      border: Border.all(
+                                        width: 2,
+                                        color: accentColor,
+                                      )),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SvgPicture.string(
+                                        '<svg width="23" height="25" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18.131 1.5v2.2M4.868 1.5v2.2M1 12.768c0-4.793 0-7.19 1.384-8.679C3.768 2.6 5.995 2.6 10.45 2.6h2.1c4.455 0 6.682 0 8.066 1.49C22 5.577 22 7.974 22 12.767v.564c0 4.794 0 7.19-1.384 8.68C19.232 23.5 17.005 23.5 12.55 23.5h-2.1c-4.455 0-6.682 0-8.066-1.489C1 20.522 1 18.126 1 13.333v-.565ZM1.553 8.1h19.895" stroke="#001A72" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
                                       ),
-                                    ),
-                                  )
-                                ],
-                              );
-                            }),
+                                      const SizedBox(
+                                        width: 8,
+                                      ),
+                                      Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: <Widget>[
+                                          Text(
+                                            "Schedule",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          Text(
+                                            "from ₹${priceManipulation.baseOrderCharges}",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          )
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            )
+                          ],
+                        ),
                         const SizedBox(
                           height: 10,
                         ),
@@ -391,22 +391,26 @@ class _NeworderState extends State<Neworder> {
                               return Column(
                                 children: [
                                   AddressContainer(
+                                      key: Key((0).toString()),
                                       title: "Pickup Point",
                                       address: controller.pickup,
                                       index: 0,
                                       subtitle:
                                           "Add a pickup point for the courier"),
                                   AddressContainer(
-                                      title: "Drop Point",
-                                      address: controller.drop,
-                                      index: 1,
-                                      subtitle:
-                                          "Add a drop point for the courier"),
+                                    key: Key((1).toString()),
+                                    title: "Drop Point",
+                                    address: controller.drop,
+                                    index: 1,
+                                    subtitle:
+                                        "Add a drop point for the courier",
+                                  ),
                                   ...controller.droplocations
                                       .asMap()
                                       .entries
                                       .map(
                                         (e) => AddressContainer(
+                                          key: Key((e.key + 2).toString()),
                                           title: "Drop point",
                                           address: e.value,
                                           subtitle:
@@ -416,6 +420,7 @@ class _NeworderState extends State<Neworder> {
                                       )
                                       .toList(),
                                   AddressContainer(
+                                    key: const Key("Add delivery point"),
                                     title: "Add a delivery point",
                                     address: controller.pickup,
                                     subtitle:
@@ -425,115 +430,118 @@ class _NeworderState extends State<Neworder> {
                                       controller.initialaddress,
                                     ),
                                   ),
+                                  const SizedBox(
+                                    height: 30,
+                                  ),
+                                  GestureDetector(
+                                    onTap: handlePreFetch,
+                                    child: Container(
+                                      width: MediaQuery.of(context).size.width -
+                                          2 * 25,
+                                      decoration: BoxDecoration(
+                                        color: accentColor.withOpacity(0.8),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: Colors.black,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 30,
+                                          vertical: 8,
+                                        ),
+                                        child: predictionLoading
+                                            ? const Center(
+                                                child: SpinKitThreeBounce(
+                                                  color: Colors.white,
+                                                  size: 18,
+                                                ),
+                                              )
+                                            : Text(
+                                                amount == 0.0
+                                                    ? "Click here to calculate the estimated fare"
+                                                    : "Estimated Amount: ${amount.toPrecision(2)}",
+                                                style: GoogleFonts.poppins(
+                                                  color: Colors.black,
+                                                  fontSize: 13,
+                                                  fontWeight: amount == 0.0
+                                                      ? FontWeight.normal
+                                                      : FontWeight.w600,
+                                                ),
+                                                textAlign: TextAlign.center,
+                                              ),
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               );
                             }),
                         const SizedBox(
                           height: 30,
                         ),
-                        GetBuilder<AddressController>(
-                            init: AddressController(),
-                            builder: (addressController) {
-                              return GestureDetector(
-                                onTap: () => handlePreFetch(
-                                  addressController.pickup.latitude,
-                                  addressController.pickup.longitude,
-                                  addressController.drop.latitude,
-                                  addressController.drop.longitude,
-                                  addressController.droplocations,
-                                ),
-                                child: Container(
-                                  width: MediaQuery.of(context).size.width - 2 * 25,
-                                  decoration: BoxDecoration(
-                                    color: accentColor.withOpacity(0.8),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: Colors.black,
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 30,
-                                            vertical: 8,
-                                          ),
-                                          child: predictionLoading
-                                      ? Center(
-                                          child: SpinKitThreeBounce(
-                                            color: Colors.white,
-                                            size: 18,
-                                          ),
-                                        )
-                                      : Text(
-                                            amount == 0.0
-                                                ? "Click here to calculate the estimated fare"
-                                                : "Estimated Amount: ${amount.toPrecision(2)}",
-                                            style: GoogleFonts.poppins(
-                                              color: Colors.black,
-                                              fontSize: 13,
-                                              fontWeight: amount == 0.0
-                                                  ? FontWeight.normal
-                                                  : FontWeight.w600,
-                                            ),
-                                            textAlign: TextAlign.center,
-                                          ),
-                                        ),
-                                ),
+                        GestureDetector(
+                          onTap: () {
+                            final AddressController addressController =
+                                Get.find();
+                            var checks = addressController.droplocations
+                                .where((element) {
+                                  print(element.text);
+                                  print(element.latitude);
+                                  print(element.longitude);
+                                  print(element.address);
+                                  print(element.phone_number);
+                                  print(element.name);
+                              return (element.text.isEmpty ||
+                                  element.latitude == 0.0 ||
+                                  element.longitude == 0.0 ||
+                                  element.address.isEmpty ||
+                                  element.phone_number.isEmpty ||
+                                  element.name.isEmpty);
+                            });
+                            if (addressController
+                                    .pickup.text.isNotEmpty &&
+                                addressController
+                                    .drop.text.isNotEmpty &&
+                                checks.isEmpty) {
+                              Get.to(() => const OrderForm());
+                            } else if (orderController
+                                        .currentorder.delivery_type ==
+                                    "scheduled" &&
+                                orderController.currentorder.pickup.time !=
+                                    null &&
+                                orderController.currentorder.pickup.date !=
+                                    null &&
+                                orderController.currentorder.drop.time !=
+                                    null &&
+                                orderController.currentorder.drop.date !=
+                                    null) {
+                              GetSnackbar.info(
+                                "Date time not mentioned",
                               );
-                            }),
-                        const SizedBox(
-                          height: 30,
+                            } else {
+                              GetSnackbar.info(
+                                "Incomplete form please fill the entire form",
+                              );
+                            }
+                          },
+                          child: Container(
+                            height: 55,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(30),
+                              color: accentColor,
+                            ),
+                            child: Center(
+                              child: Text(
+                                "Continue",
+                                style: GoogleFonts.poppins(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
-                        GetBuilder<OrderController>(
-                            init: OrderController(),
-                            builder: (orderController) {
-                              return GestureDetector(
-                                onTap: () {
-                                  if (orderController.currentorder.pickup.text
-                                          .isNotEmpty &&
-                                      orderController
-                                          .currentorder.drop.text.isNotEmpty) {
-                                    Get.to(() => const OrderForm());
-                                  } else if (orderController
-                                              .currentorder.delivery_type ==
-                                          "scheduled" &&
-                                      orderController
-                                              .currentorder.pickup.time !=
-                                          null &&
-                                      orderController
-                                              .currentorder.pickup.date !=
-                                          null &&
-                                      orderController.currentorder.drop.time !=
-                                          null &&
-                                      orderController.currentorder.drop.date !=
-                                          null) {
-                                    GetSnackbar.info(
-                                      "Date time not mentioned",
-                                    );
-                                  } else {
-                                    GetSnackbar.info(
-                                      "Incomplete form please fill the entire form",
-                                    );
-                                  }
-                                },
-                                child: Container(
-                                  height: 55,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(30),
-                                    color: accentColor,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      "Continue",
-                                      style: GoogleFonts.poppins(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              );
-                            }),
                       ],
                     ),
                   );

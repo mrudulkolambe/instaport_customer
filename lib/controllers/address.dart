@@ -1,4 +1,4 @@
-import 'package:get/state_manager.dart';
+import 'package:get/get.dart';
 import 'package:instaport_customer/models/address_model.dart';
 
 class AddressController extends GetxController {
@@ -12,6 +12,7 @@ class AddressController extends GetxController {
     phone_number: "",
     address: "",
     name: "",
+    key: ""
   );
   var pickup = Address(
     text: "",
@@ -23,6 +24,7 @@ class AddressController extends GetxController {
     phone_number: "",
     address: "",
     name: "",
+    key: ""
   );
   var drop = Address(
     text: "",
@@ -34,6 +36,7 @@ class AddressController extends GetxController {
     phone_number: "",
     address: "",
     name: "",
+    key: ""
   );
 
   List<Address> droplocations = [];
@@ -43,9 +46,22 @@ class AddressController extends GetxController {
     update();
   }
 
-  void removeDropLocation(int index) {
-    droplocations.removeAt(index);
+  void updateDropLocationArray(List<Address> updatedLocations) {
+    droplocations = updatedLocations;
     update();
+  }
+
+  void addNewDropLocation(Address address) {
+    droplocations.add(address);
+    update();
+  }
+
+  void removeDropLocation(int index) {
+    final AddressController addressController = Get.find();
+    if (index >= 0 && index < addressController.droplocations.length) {
+      addressController.droplocations.removeAt(index);
+      update();
+    }
   }
 
   void updateAddress(String type, Address data) {
@@ -55,11 +71,6 @@ class AddressController extends GetxController {
       drop = data;
     }
     update();
-  }
-
-  void addNewDropLocation(Address address) {
-    droplocations.add(address); 
-    update(); 
   }
 
   void resetfields() {

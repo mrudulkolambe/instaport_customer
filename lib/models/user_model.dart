@@ -37,7 +37,6 @@ class UserDataResponse {
     final message = json['message'] as String;
     final user = User.fromJson(json['user']);
     return UserDataResponse(
-
       error: error,
       message: message,
       user: user,
@@ -52,6 +51,7 @@ class User {
   bool verified;
   String role;
   double wallet;
+  double holdAmount;
 
   User({
     required this.fullname,
@@ -60,6 +60,7 @@ class User {
     required this.verified,
     required this.role,
     required this.wallet,
+    required this.holdAmount,
   });
 
   factory User.fromJson(dynamic json) {
@@ -69,6 +70,7 @@ class User {
     final verified = json['verified'] as bool;
     final role = json['role'] as String;
     final wallet = json['wallet'] + 0.0;
+    final holdAmount = json['holdAmount'] + 0.0;
     return User(
       fullname: fullname,
       mobileno: mobileno,
@@ -76,6 +78,7 @@ class User {
       verified: verified,
       role: role,
       wallet: wallet,
+      holdAmount: holdAmount,
     );
   }
 }

@@ -100,7 +100,7 @@ class _WalletState extends State<Wallet> {
                   init: UserController(),
                   builder: (usercontroller) {
                     return Container(
-                      height: 200,
+                      height: 210,
                       width: MediaQuery.of(context).size.width - 50,
                       decoration: BoxDecoration(
                         color: accentColor,
@@ -146,6 +146,14 @@ class _WalletState extends State<Wallet> {
                                   style: GoogleFonts.poppins(
                                     color: Colors.white,
                                     fontSize: 35,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                Text(
+                                  "Hold: ₹${usercontroller.user.holdAmount.toPrecision(2)}",
+                                  style: GoogleFonts.poppins(
+                                    color: Colors.white,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

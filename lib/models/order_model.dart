@@ -65,7 +65,6 @@ class Orders {
   Rider? rider;
   List<OrderStatus> orderStatus;
   double amount;
-
   Orders({
     required this.pickup,
     required this.drop,
@@ -89,17 +88,16 @@ class Orders {
   });
 
   factory Orders.fromJson(dynamic json) {
-    // final items =
-    //     List.from(json["drop"]).map((e) => Address.fromJson(e)).toList();
-
     final pickup = Address.fromJson(json['pickup']);
     final drop = Address.fromJson(json['drop']);
     final orderStatus = List.from(json["orderStatus"]).map((e) {
       return OrderStatus.fromJson(e);
     }).toList();
-     final List<Address> droplocations = json['droplocations'] == null ? [] : List.from(json["droplocations"]).map((e) {
-      return Address.fromJson(e);
-    }).toList();
+    final List<Address> droplocations = json['droplocations'] == null
+        ? []
+        : List.from(json["droplocations"]).map((e) {
+            return Address.fromJson(e);
+          }).toList();
     final id = json['_id'] as String;
     final delivery_type = json['delivery_type'] as String;
     final parcel_weight = json['parcel_weight'] as String;
@@ -117,25 +115,26 @@ class Orders {
     final rider = json["rider"] == null ? null : Rider.fromJson(json['rider']);
 
     return Orders(
-        pickup: pickup,
-        drop: drop,
-        id: id,
-        delivery_type: delivery_type,
-        parcel_weight: parcel_weight,
-        droplocations: droplocations,
-        phone_number: phone_number,
-        notify_sms: notify_sms,
-        courier_bag: courier_bag,
-        vehicle: vehicle,
-        status: status,
-        payment_method: payment_method,
-        customer: customer,
-        package: package,
-        time_stamp: time_stamp,
-        parcel_value: parcel_value,
-        amount: amount,
-        rider: rider,
-        orderStatus: orderStatus);
+      pickup: pickup,
+      drop: drop,
+      id: id,
+      delivery_type: delivery_type,
+      parcel_weight: parcel_weight,
+      droplocations: droplocations,
+      phone_number: phone_number,
+      notify_sms: notify_sms,
+      courier_bag: courier_bag,
+      vehicle: vehicle,
+      status: status,
+      payment_method: payment_method,
+      customer: customer,
+      package: package,
+      time_stamp: time_stamp,
+      parcel_value: parcel_value,
+      amount: amount,
+      rider: rider,
+      orderStatus: orderStatus,
+    );
   }
 
   Map<String, dynamic> toJson() {
@@ -166,21 +165,25 @@ class OrderStatus {
   int timestamp;
   String message;
   String? image;
+  String? key;
 
   OrderStatus({
     required this.timestamp,
     required this.message,
     this.image,
+    this.key,
   });
 
   factory OrderStatus.fromJson(dynamic json) {
     final timestamp = json['timestamp'] as int;
     final message = json['message'] as String;
     final image = json['image'];
+    final key = json['key'];
     return OrderStatus(
       timestamp: timestamp,
       message: message,
       image: image,
+      key: key,
     );
   }
 }

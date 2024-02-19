@@ -12,6 +12,7 @@ class Address {
   String name;
   String? time;
   String? date;
+  String key;
 
   Address({
     required this.text,
@@ -23,6 +24,7 @@ class Address {
     required this.phone_number,
     required this.address,
     required this.name,
+    required this.key,
     this.date,
     this.time,
   });
@@ -34,6 +36,7 @@ class Address {
     final building_and_flat = json['building_and_flat'] as String;
     final floor_and_wing = json['floor_and_wing'] as String;
     final instructions = json['instructions'] as String;
+    final key = json['key'] as String;
     final phone_number = json['phone_number'] as String;
     final address = json['address'] as String;
     final name = json['name'] as String;
@@ -45,6 +48,7 @@ class Address {
       latitude: latitude,
       longitude: longitude,
       building_and_flat: building_and_flat,
+      key: key,
       floor_and_wing: floor_and_wing,
       instructions: instructions,
       phone_number: phone_number,
@@ -60,6 +64,7 @@ class Address {
       'text': text,
       'latitude': latitude,
       'longitude': longitude,
+      'key': key,
       'building_and_flat': building_and_flat,
       'floor_and_wing': floor_and_wing,
       'instructions': instructions,
@@ -88,8 +93,9 @@ class AddressObject {
     final instructions = json['instructions'] as String;
     final phone_number = json['phone_number'] as String;
     return AddressObject(
-        address: address,
-        instructions: instructions,
-        phone_number: phone_number);
+      address: address,
+      instructions: instructions,
+      phone_number: phone_number,
+    );
   }
 }
