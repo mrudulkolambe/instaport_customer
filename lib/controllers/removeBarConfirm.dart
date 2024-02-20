@@ -3,14 +3,8 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:instaport_customer/constants/colors.dart';
 
-class ConfirmController extends GetxController {
-  double getAbsoluteDifference(double a, double b) {
-    return (a - b);
-  }
-
-  Future<bool> showConfirmDialog(
-      double oldAmount, double newAmount, String payment_method) async {
-    double diff = getAbsoluteDifference(oldAmount, newAmount);
+class RemoveConfirm extends GetxController {
+  Future<bool> showRemoveConfirmDialog() async {
     return await Get.defaultDialog(
       barrierDismissible: false,
       onWillPop: () async {
@@ -70,29 +64,13 @@ class ConfirmController extends GetxController {
       ),
       contentPadding: const EdgeInsets.all(15),
       title: 'Confirm',
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text("Amount: Rs.$newAmount"),
-          if (payment_method != "cod")
-            Text(
-              diff == 0
-                  ? 'Are you sure you want to update the order?'
-                  : diff < 0
-                      ? "Rs.${diff.abs().toPrecision(2)} will be added to your next order"
-                      : "Rs.${diff.abs().toPrecision(2)} will be saved for your next order",
-            ),
-          if (payment_method == "cod")
-            Text(
-                "Rs.${diff.abs().toPrecision(2)} has been added to your amount"),
-        ],
-      ),
-      textConfirm: 'Yes',
+      content: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text("Are you sure you want to remove the drop point?"),
+      ]),
       titleStyle: GoogleFonts.poppins(
         fontWeight: FontWeight.w700,
       ),
       middleTextStyle: GoogleFonts.poppins(),
-      textCancel: 'No',
       confirmTextColor: Colors.white,
       buttonColor: accentColor,
       cancelTextColor: Colors.black,

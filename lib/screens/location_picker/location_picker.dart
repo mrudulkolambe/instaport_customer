@@ -40,7 +40,8 @@ class _LocationPickerState extends State<LocationPicker> {
   final TextEditingController _addresscontroller = TextEditingController();
   final TextEditingController _namecontroller = TextEditingController();
   final TextEditingController _datecontroller = TextEditingController();
-  final TextEditingController _timecontroller = TextEditingController();
+  final TextEditingController _fromtimecontroller = TextEditingController();
+  final TextEditingController _totimecontroller = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
 
@@ -63,7 +64,8 @@ class _LocationPickerState extends State<LocationPicker> {
         address: _addresscontroller.text,
         name: _namecontroller.text,
         date: _datecontroller.text,
-        time: _timecontroller.text,
+        fromtime: _fromtimecontroller.text,
+        totime: _totimecontroller.text,
         key: key,
       );
       orderController.updateAddress(widget.index, data);
@@ -90,7 +92,8 @@ class _LocationPickerState extends State<LocationPicker> {
         _floorcontroller.text = addressController.pickup.floor_and_wing;
         _namecontroller.text = addressController.pickup.name;
         _datecontroller.text = addressController.pickup.date ?? "";
-        _timecontroller.text = addressController.pickup.time ?? "";
+        _fromtimecontroller.text = addressController.pickup.fromtime ?? "";
+        _totimecontroller.text = addressController.pickup.totime ?? "";
       });
     } else if (widget.index == 1) {
       setState(() {
@@ -101,8 +104,28 @@ class _LocationPickerState extends State<LocationPicker> {
         _floorcontroller.text = addressController.drop.floor_and_wing;
         _namecontroller.text = addressController.drop.name;
         _datecontroller.text = addressController.drop.date ?? "";
-        _timecontroller.text = addressController.drop.time ?? "";
+        _fromtimecontroller.text = addressController.drop.fromtime ?? "";
+        _totimecontroller.text = addressController.drop.totime ?? "";
       });
+    } else if (widget.index >= 2) {
+      _phonecontroller.text =
+          addressController.droplocations[widget.index - 2].phone_number;
+      _instructioncontroller.text =
+          addressController.droplocations[widget.index - 2].instructions;
+      _addresscontroller.text =
+          addressController.droplocations[widget.index - 2].address;
+      _buildingcontroller.text =
+          addressController.droplocations[widget.index - 2].building_and_flat;
+      _floorcontroller.text =
+          addressController.droplocations[widget.index - 2].floor_and_wing;
+      _namecontroller.text =
+          addressController.droplocations[widget.index - 2].name;
+      _datecontroller.text =
+          addressController.droplocations[widget.index - 2].date ?? "";
+      _fromtimecontroller.text =
+          addressController.droplocations[widget.index - 2].fromtime ?? "";
+      _totimecontroller.text =
+          addressController.droplocations[widget.index - 2].totime ?? "";
     }
   }
 
@@ -122,41 +145,43 @@ class _LocationPickerState extends State<LocationPicker> {
     _datetimefocusnode.unfocus();
   }
 
-  DateTime _selectedDateTime = DateTime.now();
-
-  Future<void> _selectDateTime(BuildContext context,
-      TextEditingController controller, String type) async {
+  Future<void> _selectDateTime(
+    BuildContext context,
+    TextEditingController controller,
+    String type,
+  ) async {
+    DateTime selectedDateTime = DateTime.now();
     if (type == "date") {
       final DateTime? pickedDate = await showDatePicker(
         context: context,
-        initialDate: _selectedDateTime,
+        initialDate: selectedDateTime,
         firstDate: DateTime.now(),
         lastDate: DateTime(2100),
       );
       if (pickedDate != null) {
         setState(() {
-          _selectedDateTime = pickedDate;
           controller.text =
-              readTimestampAsDate(_selectedDateTime.millisecondsSinceEpoch);
+              readTimestampAsDate(pickedDate.millisecondsSinceEpoch);
         });
       }
     } else if (type == "time") {
       final TimeOfDay? pickedTime = await showTimePicker(
         context: context,
-        initialEntryMode: TimePickerEntryMode.dial,
-        initialTime: TimeOfDay.fromDateTime(_selectedDateTime),
+        initialEntryMode: TimePickerEntryMode.inputOnly,
+        initialTime: TimeOfDay.fromDateTime(selectedDateTime),
       );
+      print(pickedTime);
       if (pickedTime != null) {
         setState(() {
-          _selectedDateTime = DateTime(
-            _selectedDateTime.year,
-            _selectedDateTime.month,
-            _selectedDateTime.day,
-            pickedTime.minute,
+          selectedDateTime = DateTime(
+            selectedDateTime.year,
+            selectedDateTime.month,
+            selectedDateTime.day,
             pickedTime.hour,
+            pickedTime.minute,
           );
           controller.text =
-              readTimestampAsTime(_selectedDateTime.millisecondsSinceEpoch);
+              readTimestampAsTime(selectedDateTime.millisecondsSinceEpoch);
         });
       }
     }
@@ -300,6 +325,78 @@ class _LocationPickerState extends State<LocationPicker> {
                         const Label(label: "When to arrive at this address: "),
                       if (orderController.currentorder.delivery_type ==
                           "scheduled")
+                        TextFormField(
+                          validator: (value) {
+                            if (orderController.currentorder.delivery_type ==
+                                "scheduled") {
+                              if (value == null || value.isEmpty) {
+                                return 'Invalid date';
+                              }
+                            }
+                            return null;
+                          },
+                          keyboardType: TextInputType.datetime,
+                          focusNode: _datetimefocusnode,
+                          controller: _datecontroller,
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: 13,
+                          ),
+                          onTap: _removeFocus,
+                          decoration: InputDecoration(
+                            suffixIcon: IconButton(
+                              onPressed: () => _selectDateTime(
+                                  context, _datecontroller, "date"),
+                              icon: const Icon(
+                                Icons.calendar_today_outlined,
+                                color: Colors.black,
+                                size: 18,
+                              ),
+                            ),
+                            fillColor: Colors.white,
+                            filled: true,
+                            hintText: "Date",
+                            hintStyle: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black38,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                  width: 2,
+                                  color: Colors.black.withOpacity(0.1)),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderSide:
+                                  const BorderSide(width: 2, color: Colors.red),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                  width: 2,
+                                  color: Colors.black.withOpacity(0.1)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: accentColor,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 15,
+                              horizontal: 15,
+                            ),
+                          ),
+                        ),
+                      if (orderController.currentorder.delivery_type ==
+                          "scheduled")
+                        SizedBox(
+                          height: 10,
+                        ),
+                      if (orderController.currentorder.delivery_type ==
+                          "scheduled")
                         Row(
                           children: [
                             Expanded(
@@ -309,14 +406,14 @@ class _LocationPickerState extends State<LocationPicker> {
                                           .currentorder.delivery_type ==
                                       "scheduled") {
                                     if (value == null || value.isEmpty) {
-                                      return 'Invalid date';
+                                      return 'Invalid time';
                                     }
                                   }
                                   return null;
                                 },
                                 keyboardType: TextInputType.datetime,
                                 focusNode: _datetimefocusnode,
-                                controller: _datecontroller,
+                                controller: _fromtimecontroller,
                                 style: GoogleFonts.poppins(
                                   color: Colors.black,
                                   fontSize: 13,
@@ -325,16 +422,16 @@ class _LocationPickerState extends State<LocationPicker> {
                                 decoration: InputDecoration(
                                   suffixIcon: IconButton(
                                     onPressed: () => _selectDateTime(
-                                        context, _datecontroller, "date"),
+                                        context, _fromtimecontroller, "time"),
                                     icon: const Icon(
-                                      Icons.calendar_today_outlined,
+                                      Icons.av_timer_rounded,
                                       color: Colors.black,
-                                      size: 18,
+                                      size: 20,
                                     ),
                                   ),
                                   fillColor: Colors.white,
                                   filled: true,
-                                  hintText: "Date",
+                                  hintText: "Enter your time range",
                                   hintStyle: GoogleFonts.poppins(
                                     fontSize: 14,
                                     color: Colors.black38,
@@ -387,7 +484,7 @@ class _LocationPickerState extends State<LocationPicker> {
                                 },
                                 keyboardType: TextInputType.datetime,
                                 focusNode: _datetimefocusnode,
-                                controller: _timecontroller,
+                                controller: _totimecontroller,
                                 style: GoogleFonts.poppins(
                                   color: Colors.black,
                                   fontSize: 13,
@@ -396,7 +493,7 @@ class _LocationPickerState extends State<LocationPicker> {
                                 decoration: InputDecoration(
                                   suffixIcon: IconButton(
                                     onPressed: () => _selectDateTime(
-                                        context, _timecontroller, "time"),
+                                        context, _totimecontroller, "time"),
                                     icon: const Icon(
                                       Icons.av_timer_rounded,
                                       color: Colors.black,
@@ -405,7 +502,7 @@ class _LocationPickerState extends State<LocationPicker> {
                                   ),
                                   fillColor: Colors.white,
                                   filled: true,
-                                  hintText: "Enter your time",
+                                  hintText: "Enter your time range",
                                   hintStyle: GoogleFonts.poppins(
                                     fontSize: 14,
                                     color: Colors.black38,

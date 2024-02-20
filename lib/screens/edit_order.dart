@@ -12,13 +12,16 @@ import 'package:instaport_customer/components/bottomnavigationbar.dart';
 import 'package:instaport_customer/components/label.dart';
 import 'package:instaport_customer/constants/colors.dart';
 import 'package:instaport_customer/controllers/confirm.dart';
+import 'package:instaport_customer/controllers/removeBarConfirm.dart';
 import 'package:instaport_customer/main.dart';
 import 'package:instaport_customer/models/address_model.dart';
 import 'package:instaport_customer/models/order_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:instaport_customer/models/places_model.dart';
 import 'package:instaport_customer/models/price_model.dart';
+import 'package:instaport_customer/screens/track_order.dart';
 import 'package:instaport_customer/services/location_service.dart';
+import 'package:uuid/uuid.dart';
 
 class EditOrderDetails extends StatefulWidget {
   final Orders order;
@@ -74,7 +77,6 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
           loading = false;
           order = data.order;
           _columnkey = UniqueKey();
-          print(_columnkey);
           dropdownValue = data.order.parcel_weight;
           _dropdownkey = UniqueKey();
           oldAmount = data.order.amount;
@@ -87,12 +89,13 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
   }
 
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final ConfirmController _controller = Get.put(ConfirmController());
   void submitForm() async {
-    final token = await storage.read("token");
-    var amount = await handlePreFetch();
-    bool result = await _controller.showConfirmDialog(oldAmount, amount, order!.payment_method);
-    if (result && _formKey.currentState!.validate()) {
+    if (_formKey.currentState!.validate()) {
+      final ConfirmController confirmController = Get.put(ConfirmController());
+      final token = await storage.read("token");
+      var amount = await handlePreFetch();
+      bool result = await confirmController.showConfirmDialog(
+          oldAmount, amount, order!.payment_method);
       var headers = {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json'
@@ -111,22 +114,23 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
         "package": _packagecontroller.text,
         "parcel_value": _parcelvaluecontroller.text,
         "amount": amount,
-        'hold': amount - oldAmount
+        'hold': oldAmount - amount
       });
       request.headers.addAll(headers);
-
-      http.StreamedResponse response = await request.send();
-
-      if (response.statusCode == 200) {
-        var json = await response.stream.bytesToString();
-        FirebaseDatabase.instance
-            .ref('/orders/${order!.id}')
-            .update({"modified": "data", "order": jsonDecode(json)["order"]});
-      } else {
-        print("Error: ${response.reasonPhrase}");
+      if (result) {
+        http.StreamedResponse response = await request.send();
+        if (response.statusCode == 200) {
+          var json = await response.stream.bytesToString();
+          FirebaseDatabase.instance.ref('/orders/${order!.id}').update(
+            {"modified": "data", "order": jsonDecode(json)["order"]},
+          );
+          Get.back();
+        } else {
+          print("Error: ${response.reasonPhrase}");
+        }
       }
     } else {
-      print("asdasdasdasas");
+      Get.snackbar("Error", "Form incompletely filled!");
     }
   }
 
@@ -137,27 +141,33 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
     double totalAmount = 0;
     var response = await http.get(Uri.parse("$apiUrl/price/get"));
     final data = PriceManipulationResponse.fromJson(jsonDecode(response.body));
+    List<Address> mAddress = List.from(address, growable: true);
+    mAddress.removeAt(0);
+    mAddress.removeAt(0);
+    print(address);
+    print(mAddress);
     var distanceMain = await LocationService().fetchDistance(
-        order!.pickup.latitude,
-        order!.pickup.longitude,
-        order!.drop.latitude,
-        order!.drop.longitude);
+      address[0].latitude,
+      address[0].longitude,
+      address[1].latitude,
+      address[1].longitude,
+    );
     totalDistance = (distanceMain.rows[0].elements[0].distance.value / 1000);
     totalAmount = (distanceMain.rows[0].elements[0].distance.value / 1000) *
         data.priceManipulation.perKilometerCharge;
-    if (order!.droplocations.isNotEmpty) {
-      for (int i = 0; i < order!.droplocations.length; i++) {
+    if (mAddress.isNotEmpty) {
+      for (int i = 0; i < mAddress.length; i++) {
         double srcLat, srcLng, destLat, destLng;
         if (i == 0) {
-          srcLat = order!.drop.latitude;
-          srcLng = order!.drop.longitude;
-          destLat = order!.droplocations[i].latitude;
-          destLng = order!.droplocations[i].longitude;
+          srcLat = address[1].latitude;
+          srcLng = address[1].longitude;
+          destLat = mAddress[i].latitude;
+          destLng = mAddress[i].longitude;
         } else {
-          srcLat = order!.droplocations[i - 1].latitude;
-          srcLng = order!.droplocations[i - 1].longitude;
-          destLat = order!.droplocations[i].latitude;
-          destLng = order!.droplocations[i].longitude;
+          srcLat = mAddress[i - 1].latitude;
+          srcLng = mAddress[i - 1].longitude;
+          destLat = mAddress[i].latitude;
+          destLng = mAddress[i].longitude;
         }
         var locationData = await LocationService()
             .fetchDistance(srcLat, srcLng, destLat, destLng);
@@ -190,6 +200,41 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
     }
   }
 
+  void handleRemove(int index) async {
+    final RemoveConfirm confirmController = Get.put(RemoveConfirm());
+    bool result = await confirmController.showRemoveConfirmDialog();
+    if (result) {
+      setState(() {
+        print("Initial Address: ${address.length}");
+        address.removeAt(index);
+        print("Later: ${address.length}");
+      });
+    } else {
+      print("Event Cancelled");
+    }
+  }
+
+  var uuid = const Uuid();
+  void handleAdd() {
+    Address initialAddress = Address(
+      text: "",
+      latitude: 0.0,
+      longitude: 0.0,
+      building_and_flat: "",
+      floor_and_wing: "",
+      instructions: "",
+      phone_number: "",
+      address: "",
+      name: "",
+      key: "",
+    );
+    String key = uuid.v1();
+    initialAddress.key = key;
+    setState(() {
+      address.add(initialAddress);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -201,7 +246,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
         backgroundColor: const Color.fromRGBO(255, 255, 255, 1),
         title: CustomAppBar(
           title: "Edit #${widget.order.id.substring(18)}",
-          back: () => Get.back(),
+          back: () => Get.to(() => TrackOrder(data: widget.order)),
         ),
       ),
       body: SafeArea(
@@ -282,6 +327,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                     ),
                     const Label(label: "Phone Number: "),
                     TextFormField(
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Invalid number';
@@ -331,6 +377,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                     ),
                     const Label(label: "Parcel Value: "),
                     TextFormField(
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       controller: _parcelvaluecontroller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -380,7 +427,9 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                     ),
                     const Label(label: "Package: "),
                     TextFormField(
-                      enabled: order != null ? order!.orderStatus.length < 2 : true,
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
+                      enabled:
+                          order != null ? order!.orderStatus.length < 2 : true,
                       controller: _packagecontroller,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -436,7 +485,6 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                         return element.key == e.value.key;
                       },
                     );
-                    print("${e.key}: ${check.isEmpty}");
                     return Column(
                       children: <Widget>[
                         Container(
@@ -466,12 +514,11 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                             ),
                             onTap: () {
                               setState(() {
-                                _isOpen[e.key] =
-                                    !_isOpen[e.key]; // Toggle expansion state
+                                _isOpen[e.key] = !_isOpen[e.key];
                               });
                             },
                             trailing: Icon(
-                              _isOpen[0]
+                              _isOpen[e.key]
                                   ? Icons.expand_less
                                   : Icons.expand_more,
                               color: Colors.black,
@@ -507,18 +554,29 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                                   const Label(
                                                       label: "Google Map: "),
                                                   TextFormField(
+                                                    validator: (value) {
+                                                      if (value == null ||
+                                                          value.isEmpty) {
+                                                        return 'Invalid location';
+                                                      }
+                                                      return null;
+                                                    },
+                                                    autovalidateMode:
+                                                        AutovalidateMode
+                                                            .onUserInteraction,
                                                     enabled: check.isEmpty,
                                                     initialValue: e.value.text,
-                                                    onChanged: check.isEmpty ? 
-                                                        (String value) async {
-                                                      final data =
-                                                          await LocationService()
-                                                              .fetchPlaces(
-                                                                  value);
-                                                      setState(() {
-                                                        places = data;
-                                                      });
-                                                    }: null,
+                                                    onChanged: check.isEmpty
+                                                        ? (String value) async {
+                                                            final data =
+                                                                await LocationService()
+                                                                    .fetchPlaces(
+                                                                        value);
+                                                            setState(() {
+                                                              places = data;
+                                                            });
+                                                          }
+                                                        : null,
                                                     style: GoogleFonts.poppins(
                                                       color: Colors.black,
                                                       fontSize: 13,
@@ -702,6 +760,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                       ),
                                       const Label(label: "Name: "),
                                       TextFormField(
+                                        autovalidateMode:
+                                            AutovalidateMode.onUserInteraction,
                                         enabled: check.isEmpty,
                                         onFieldSubmitted: (value) {
                                           setState(() {
@@ -775,6 +835,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                       ),
                                       const Label(label: "Phone Number: "),
                                       TextFormField(
+                                        autovalidateMode:
+                                            AutovalidateMode.onUserInteraction,
                                         enabled: check.isEmpty,
                                         onFieldSubmitted: (value) {
                                           setState(() {
@@ -854,32 +916,121 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                             label:
                                                 "When to arrive at this address: "),
                                       if (order!.delivery_type == "scheduled")
+                                        TextFormField(
+                                          autovalidateMode: AutovalidateMode
+                                              .onUserInteraction,
+                                          enabled: check.isEmpty,
+                                          onFieldSubmitted: (value) {
+                                            setState(() {
+                                              var items = address;
+                                              items[e.key].date = value;
+                                              address = items;
+                                            });
+                                          },
+                                          onChanged: (value) {
+                                            setState(() {
+                                              var items = address;
+                                              items[e.key].date = value;
+                                              address = items;
+                                            });
+                                          },
+                                          initialValue: e.value.date,
+                                          validator: (value) {
+                                            if (order!.delivery_type ==
+                                                "scheduled") {
+                                              if (value == null ||
+                                                  value.isEmpty) {
+                                                return 'Invalid date';
+                                              }
+                                            }
+                                            return null;
+                                          },
+                                          keyboardType: TextInputType.datetime,
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.black,
+                                            fontSize: 13,
+                                          ),
+                                          decoration: InputDecoration(
+                                            fillColor: Colors.white,
+                                            filled: true,
+                                            hintText: "Date",
+                                            hintStyle: GoogleFonts.poppins(
+                                              fontSize: 14,
+                                              color: Colors.black38,
+                                            ),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide(
+                                                  width: 2,
+                                                  color: Colors.black
+                                                      .withOpacity(0.1)),
+                                            ),
+                                            errorBorder: OutlineInputBorder(
+                                              borderSide: const BorderSide(
+                                                  width: 2, color: Colors.red),
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide(
+                                                  width: 2,
+                                                  color: Colors.black
+                                                      .withOpacity(0.1)),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: const BorderSide(
+                                                width: 2,
+                                                color: accentColor,
+                                              ),
+                                            ),
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                              vertical: 15,
+                                              horizontal: 15,
+                                            ),
+                                          ),
+                                        ),
+                                      if (order!.delivery_type == "scheduled")
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                      if (order!.delivery_type == "scheduled")
                                         Row(
                                           children: [
                                             Expanded(
                                               child: TextFormField(
+                                                autovalidateMode:
+                                                    AutovalidateMode
+                                                        .onUserInteraction,
                                                 enabled: check.isEmpty,
                                                 onFieldSubmitted: (value) {
                                                   setState(() {
                                                     var items = address;
-                                                    items[e.key].date = value;
+                                                    items[e.key].fromtime =
+                                                        value;
                                                     address = items;
                                                   });
                                                 },
                                                 onChanged: (value) {
                                                   setState(() {
                                                     var items = address;
-                                                    items[e.key].date = value;
+                                                    items[e.key].fromtime =
+                                                        value;
                                                     address = items;
                                                   });
                                                 },
-                                                initialValue: e.value.date,
+                                                initialValue: e.value.fromtime,
                                                 validator: (value) {
                                                   if (order!.delivery_type ==
                                                       "scheduled") {
                                                     if (value == null ||
                                                         value.isEmpty) {
-                                                      return 'Invalid date';
+                                                      return 'Invalid time';
                                                     }
                                                   }
                                                   return null;
@@ -893,7 +1044,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                                 decoration: InputDecoration(
                                                   fillColor: Colors.white,
                                                   filled: true,
-                                                  hintText: "Date",
+                                                  hintText:
+                                                      "Enter your time range",
                                                   hintStyle:
                                                       GoogleFonts.poppins(
                                                     fontSize: 14,
@@ -953,22 +1105,25 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                             ),
                                             Expanded(
                                               child: TextFormField(
+                                                autovalidateMode:
+                                                    AutovalidateMode
+                                                        .onUserInteraction,
                                                 enabled: check.isEmpty,
                                                 onFieldSubmitted: (value) {
                                                   setState(() {
                                                     var items = address;
-                                                    items[e.key].time = value;
+                                                    items[e.key].totime = value;
                                                     address = items;
                                                   });
                                                 },
                                                 onChanged: (value) {
                                                   setState(() {
                                                     var items = address;
-                                                    items[e.key].time = value;
+                                                    items[e.key].totime = value;
                                                     address = items;
                                                   });
                                                 },
-                                                initialValue: e.value.time,
+                                                initialValue: e.value.totime,
                                                 validator: (value) {
                                                   if (order!.delivery_type ==
                                                       "scheduled") {
@@ -981,7 +1136,6 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                                 },
                                                 keyboardType:
                                                     TextInputType.datetime,
-                                                // focusNode: _datetimefocusnode,
                                                 style: GoogleFonts.poppins(
                                                   color: Colors.black,
                                                   fontSize: 13,
@@ -989,7 +1143,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                                 decoration: InputDecoration(
                                                   fillColor: Colors.white,
                                                   filled: true,
-                                                  hintText: "Enter your time",
+                                                  hintText:
+                                                      "Enter your time range",
                                                   hintStyle:
                                                       GoogleFonts.poppins(
                                                     fontSize: 14,
@@ -1051,6 +1206,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                       ),
                                       const Label(label: "Address: "),
                                       TextFormField(
+                                        autovalidateMode:
+                                            AutovalidateMode.onUserInteraction,
                                         enabled: check.isEmpty,
                                         onFieldSubmitted: (value) {
                                           setState(() {
@@ -1126,6 +1283,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                       const Label(
                                           label: "Building Name / Flat No: "),
                                       TextFormField(
+                                        autovalidateMode:
+                                            AutovalidateMode.onUserInteraction,
                                         enabled: check.isEmpty,
                                         onFieldSubmitted: (value) {
                                           setState(() {
@@ -1189,6 +1348,9 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                       ),
                                       const Label(label: "Floor / Wing: "),
                                       TextFormField(
+                                        enabled: check.isEmpty,
+                                        autovalidateMode:
+                                            AutovalidateMode.onUserInteraction,
                                         onFieldSubmitted: (value) {
                                           setState(() {
                                             var items = address;
@@ -1250,6 +1412,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                       ),
                                       const Label(label: "Instructions: "),
                                       TextFormField(
+                                        autovalidateMode:
+                                            AutovalidateMode.onUserInteraction,
                                         enabled: check.isEmpty,
                                         onFieldSubmitted: (value) {
                                           setState(() {
@@ -1309,6 +1473,35 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                           ),
                                         ),
                                       ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      if (e.key != 0 &&
+                                          e.key != 1 &&
+                                          check.isEmpty)
+                                        GestureDetector(
+                                          onTap: () => handleRemove(e.key),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: Colors.red,
+                                              borderRadius:
+                                                  BorderRadius.circular(8),
+                                            ),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 0,
+                                              vertical: 15,
+                                            ),
+                                            child: Center(
+                                              child: Text(
+                                                "Remove",
+                                                style: GoogleFonts.poppins(
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        )
                                     ],
                                   ),
                                 ],
@@ -1319,13 +1512,46 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                         Divider(
                           thickness: 1.0,
                           color: Colors.grey[300],
-                          // height: 20.0,
                           indent: 0,
                           endIndent: 0,
-                        ), // Divider between items
+                        ),
                       ],
                     );
                   }),
+                  SizedBox(
+                    height: 10,
+                  ),
+                  GestureDetector(
+                    onTap: () => order!.status == "cancelled"
+                        ? Get.snackbar("Error",
+                            "You cannot add drop points after cancellation!")
+                        : order!.status == "delivered"
+                            ? Get.snackbar("Error",
+                                "You cannot add drop points when the order is completed")
+                            : handleAdd(),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 0,
+                        vertical: 15,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border.all(
+                          width: 2,
+                          color: accentColor,
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          "Add Point",
+                          style: GoogleFonts.poppins(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   const SizedBox(
                     height: 12,
                   ),

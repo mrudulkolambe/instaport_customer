@@ -486,12 +486,12 @@ class _NeworderState extends State<Neworder> {
                                 Get.find();
                             var checks = addressController.droplocations
                                 .where((element) {
-                                  print(element.text);
-                                  print(element.latitude);
-                                  print(element.longitude);
-                                  print(element.address);
-                                  print(element.phone_number);
-                                  print(element.name);
+                              print(element.text);
+                              print(element.latitude);
+                              print(element.longitude);
+                              print(element.address);
+                              print(element.phone_number);
+                              print(element.name);
                               return (element.text.isEmpty ||
                                   element.latitude == 0.0 ||
                                   element.longitude == 0.0 ||
@@ -499,20 +499,22 @@ class _NeworderState extends State<Neworder> {
                                   element.phone_number.isEmpty ||
                                   element.name.isEmpty);
                             });
-                            if (addressController
-                                    .pickup.text.isNotEmpty &&
-                                addressController
-                                    .drop.text.isNotEmpty &&
+                            if (addressController.pickup.text.isNotEmpty &&
+                                addressController.drop.text.isNotEmpty &&
                                 checks.isEmpty) {
                               Get.to(() => const OrderForm());
                             } else if (orderController
                                         .currentorder.delivery_type ==
                                     "scheduled" &&
-                                orderController.currentorder.pickup.time !=
+                                orderController.currentorder.pickup.fromtime !=
+                                    null &&
+                                orderController.currentorder.pickup.totime !=
                                     null &&
                                 orderController.currentorder.pickup.date !=
                                     null &&
-                                orderController.currentorder.drop.time !=
+                                orderController.currentorder.drop.fromtime !=
+                                    null &&
+                                orderController.currentorder.drop.totime !=
                                     null &&
                                 orderController.currentorder.drop.date !=
                                     null) {

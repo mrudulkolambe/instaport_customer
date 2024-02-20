@@ -267,8 +267,8 @@ class _PaymentFormState extends State<PaymentForm> {
       //   showpg = true;
       // });
     }
-    orderController.resetFields();
-    addressController.resetfields();
+    // orderController.resetFields();
+    // addressController.resetfields();
   }
 
   @override

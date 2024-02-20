@@ -10,7 +10,9 @@ import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:instaport_customer/components/appbar.dart';
+import 'package:instaport_customer/components/label.dart';
 import 'package:instaport_customer/screens/edit_order.dart';
+import 'package:instaport_customer/screens/home.dart';
 import 'package:instaport_customer/utils/timeformatter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:instaport_customer/constants/colors.dart';
@@ -46,7 +48,9 @@ class _TrackOrderState extends State<TrackOrder> {
   DatabaseReference ref = FirebaseDatabase.instance.ref();
   late StreamSubscription<DatabaseEvent> _databaseListener;
   double sheetHeight = 350.0;
+  double cancelOrderSheetHeight = 0;
   Timer? _timer;
+  TextEditingController _reason = TextEditingController();
   Orders order_data = Orders(
     pickup: Address(
       text: "",
@@ -285,14 +289,47 @@ class _TrackOrderState extends State<TrackOrder> {
     } catch (e) {}
   }
 
+  void withdrawOrder() async {
+    try {
+      if (_reason.text.isNotEmpty) {
+        final token = await storage.read("token");
+        var headers = {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json'
+        };
+        var request = http.Request(
+          'PATCH',
+          Uri.parse("$apiUrl/order/cancel/${widget.data.id}"),
+        );
+        request.body = json.encode({
+          "reason": _reason.text,
+        });
+        request.headers.addAll(headers);
+        http.StreamedResponse response = await request.send();
+        if (response.statusCode == 200) {
+          FirebaseDatabase.instance.ref('/orders/${widget.data.id}').update(
+            {"modified": "cancel"},
+          );
+          Get.to(() => Home());
+        } else {
+          print("Error: ${response.reasonPhrase}");
+        }
+      }
+    } catch (e) {}
+  }
+
+  final FocusNode _reasonFocus = FocusNode();
+
   @override
   void initState() {
     super.initState();
     _initializeMap();
     getOrderById();
-    _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
-      getOrderByIdContinue();
-    });
+    if (order_data.status != "cancelled") {
+      _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
+        getOrderByIdContinue();
+      });
+    }
   }
 
   void _initializeMap() async {
@@ -362,36 +399,6 @@ class _TrackOrderState extends State<TrackOrder> {
                       children: [
                         Expanded(
                           child: GestureDetector(
-                            // onTap: withdrawOrder,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: accentColor,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                    width: 2, color: Colors.transparent),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 12,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  "Proceed",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        Expanded(
-                          child: GestureDetector(
                             onTap: () => Get.back(),
                             child: Container(
                               decoration: BoxDecoration(
@@ -406,10 +413,10 @@ class _TrackOrderState extends State<TrackOrder> {
                               ),
                               child: Center(
                                 child: Text(
-                                  "Cancel",
+                                  "Okay",
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
-                                    color: accentColor,
+                                    color: Colors.black,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
@@ -424,130 +431,10 @@ class _TrackOrderState extends State<TrackOrder> {
         ),
       ));
     } else {
-      Get.dialog(Dialog(
-        insetPadding: const EdgeInsets.all(8),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.0),
-        ),
-        elevation: 0,
-        backgroundColor: Colors.transparent,
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            vertical: 20.0,
-            horizontal: 15.0,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10.0),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    "Confirm",
-                    style: GoogleFonts.poppins(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-              Row(
-                children: [
-                  Text(
-                    "Are you sure you want to cancel the order?",
-                    style: GoogleFonts.poppins(),
-                  ),
-                ],
-              ),
-              if (order_data.orderStatus.isNotEmpty)
-                Row(
-                  children: [
-                    Text(
-                      "You will be charged 40Rs",
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
-                ),
-              const SizedBox(
-                height: 10,
-              ),
-              loading
-                  ? const SpinKitFadingCircle(
-                      color: accentColor,
-                      size: 20,
-                    )
-                  : Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            // onTap: withdrawOrder,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: accentColor,
-                                borderRadius: BorderRadius.circular(10),
-                                border: Border.all(
-                                    width: 2, color: Colors.transparent),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 12,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  "Proceed",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: Colors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => Get.back(),
-                            child: Container(
-                              decoration: BoxDecoration(
-                                color: Colors.transparent,
-                                borderRadius: BorderRadius.circular(10),
-                                border:
-                                    Border.all(width: 2, color: accentColor),
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 12,
-                              ),
-                              child: Center(
-                                child: Text(
-                                  "Cancel",
-                                  style: GoogleFonts.poppins(
-                                    fontSize: 14,
-                                    color: accentColor,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                        )
-                      ],
-                    )
-            ],
-          ),
-        ),
-      ));
+      FocusScope.of(context).requestFocus(_reasonFocus);
+      setState(() {
+        cancelOrderSheetHeight = MediaQuery.of(context).size.height - 100;
+      });
     }
   }
 
@@ -662,7 +549,8 @@ class _TrackOrderState extends State<TrackOrder> {
                     ],
                   ),
                 ),
-                if (order_data.id.isNotEmpty)
+                if (order_data.id.isNotEmpty &&
+                    order_data.status != "cancelled")
                   Positioned(
                     bottom: 0,
                     left: 0,
@@ -739,7 +627,8 @@ class _TrackOrderState extends State<TrackOrder> {
                                       const SizedBox(
                                         height: 10,
                                       ),
-                                      if (order_data.status != "delivered")
+                                      if (order_data.status != "delivered" &&
+                                          order_data.status != "cancelled")
                                         Padding(
                                           padding: const EdgeInsets.symmetric(
                                               horizontal: 25.0),
@@ -749,7 +638,7 @@ class _TrackOrderState extends State<TrackOrder> {
                                                 child: GestureDetector(
                                                   onTap: () => Get.to(
                                                     () => EditOrderDetails(
-                                                      order: order_data
+                                                      order: order_data,
                                                     ),
                                                   ),
                                                   child: Container(
@@ -1088,6 +977,248 @@ class _TrackOrderState extends State<TrackOrder> {
                       ),
                     ),
                   ),
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: GestureDetector(
+                    onVerticalDragDown: (details) {},
+                    onVerticalDragUpdate: (details) {
+                      setState(() {
+                        cancelOrderSheetHeight -= details.primaryDelta!;
+                        cancelOrderSheetHeight = cancelOrderSheetHeight.clamp(
+                            0.0, MediaQuery.of(context).size.height - 100);
+                      });
+                    },
+                    onVerticalDragEnd: (details) {
+                      cancelOrderSheetHeight = 0.0;
+                    },
+                    child: Material(
+                      elevation: 8.0,
+                      child: SingleChildScrollView(
+                        child: Container(
+                          height: cancelOrderSheetHeight,
+                          color: Colors.white,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              Container(
+                                height: 30.0,
+                                color: Colors.grey[300],
+                              ),
+                              Expanded(
+                                child: Column(children: [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 25.0,
+                                      vertical: 10,
+                                    ),
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "Confirm",
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 18,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "Are you sure you want to cancel the order?",
+                                              style: GoogleFonts.poppins(),
+                                            ),
+                                          ],
+                                        ),
+                                        if (order_data.orderStatus.isNotEmpty)
+                                          Row(
+                                            children: [
+                                              Text(
+                                                "You will be charged 40Rs",
+                                                style: GoogleFonts.poppins(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: Colors.red,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              "Order amount will be added to your holdings",
+                                              style: GoogleFonts.poppins(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: Colors.black,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                        const Label(
+                                            label: "Cancellation Reason: "),
+                                        TextFormField(
+                                          focusNode: _reasonFocus,
+                                          controller: _reason,
+                                          autovalidateMode: AutovalidateMode
+                                              .onUserInteraction,
+                                          keyboardType: TextInputType.text,
+                                          style: GoogleFonts.poppins(
+                                            color: Colors.black,
+                                            fontSize: 13,
+                                          ),
+                                          minLines: 6,
+                                          maxLines: 7,
+                                          validator: (value) {
+                                            if (value == null ||
+                                                value.isEmpty) {
+                                              return 'Invalid text';
+                                            } else if (value.length < 5) {
+                                              return 'Reason length should be atleast 5 characters long!';
+                                            }
+                                            return null;
+                                          },
+                                          decoration: InputDecoration(
+                                            fillColor: Colors.white,
+                                            filled: true,
+                                            hintText:
+                                                "Enter your cancellation reason",
+                                            hintStyle: GoogleFonts.poppins(
+                                                fontSize: 14,
+                                                color: Colors.black38),
+                                            enabledBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide(
+                                                  width: 2,
+                                                  color: Colors.black
+                                                      .withOpacity(0.1)),
+                                            ),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: BorderSide(
+                                                  width: 2,
+                                                  color: Colors.black
+                                                      .withOpacity(0.1)),
+                                            ),
+                                            focusedBorder: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: const BorderSide(
+                                                width: 2,
+                                                color: accentColor,
+                                              ),
+                                            ),
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                                    vertical: 15,
+                                                    horizontal: 15),
+                                          ),
+                                        ),
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: withdrawOrder,
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: accentColor,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                    border: Border.all(
+                                                        width: 2,
+                                                        color:
+                                                            Colors.transparent),
+                                                  ),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 12,
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      "Proceed",
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        fontSize: 14,
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(
+                                              width: 10,
+                                            ),
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () {
+                                                  FocusScope.of(context)
+                                                      .unfocus();
+                                                  setState(() {
+                                                    cancelOrderSheetHeight = 0;
+                                                  });
+                                                },
+                                                child: Container(
+                                                  decoration: BoxDecoration(
+                                                    color: Colors.transparent,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                    border: Border.all(
+                                                        width: 2,
+                                                        color: accentColor),
+                                                  ),
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 12,
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      "Cancel",
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        fontSize: 14,
+                                                        color: accentColor,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            )
+                                          ],
+                                        )
+                                      ],
+                                    ),
+                                  ),
+                                ]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ],
