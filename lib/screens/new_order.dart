@@ -58,6 +58,8 @@ class _NeworderState extends State<Neworder> {
     baseOrderCharges: 0,
     instaportCommission: 0,
     additionalDropCharge: 0,
+    withdrawalCharges: 0,
+    cancellationCharges: 0,
   );
   @override
   void initState() {
@@ -88,10 +90,8 @@ class _NeworderState extends State<Neworder> {
         addressController.pickup.longitude == 0.0 ||
         addressController.drop.latitude == 0.0 ||
         addressController.drop.longitude == 0.0) {
-      print("object");
       return;
     } else {
-      print("object1");
       setState(() {
         predictionLoading = true;
       });
@@ -129,7 +129,8 @@ class _NeworderState extends State<Neworder> {
     }
     setState(() {
       final OrderController orderController = Get.find();
-      if (totalDistance <= 4.0) {
+      print(totalDistance);
+      if (totalDistance <= 1.0) {
         var finalAmount =
             orderController.currentorder.parcel_weight == items[0] ||
                     orderController.currentorder.parcel_weight == items[1]
@@ -144,12 +145,12 @@ class _NeworderState extends State<Neworder> {
         var finalAmount =
             orderController.currentorder.parcel_weight == items[0] ||
                     orderController.currentorder.parcel_weight == items[1]
-                ? totalAmount
+                ? totalAmount + data.priceManipulation.baseOrderCharges
                 : orderController.currentorder.parcel_weight == items[2]
-                    ? totalAmount + 50
+                    ? totalAmount + 50 + data.priceManipulation.baseOrderCharges
                     : orderController.currentorder.parcel_weight == items[3]
-                        ? totalAmount + 100
-                        : totalAmount + 150;
+                        ? totalAmount + 100 + data.priceManipulation.baseOrderCharges
+                        : totalAmount + 150 + data.priceManipulation.baseOrderCharges;
         amount = finalAmount;
       }
       predictionLoading = false;
@@ -162,6 +163,7 @@ class _NeworderState extends State<Neworder> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         surfaceTintColor: Colors.white,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
@@ -227,7 +229,7 @@ class _NeworderState extends State<Neworder> {
                                             CrossAxisAlignment.start,
                                         children: <Widget>[
                                           Text(
-                                            "Deliver Now",
+                                            "Send Now",
                                             style: GoogleFonts.poppins(
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
@@ -283,7 +285,7 @@ class _NeworderState extends State<Neworder> {
                                             CrossAxisAlignment.start,
                                         children: <Widget>[
                                           Text(
-                                            "Schedule",
+                                            "Slot Time",
                                             style: GoogleFonts.poppins(
                                               fontSize: 12,
                                               fontWeight: FontWeight.bold,
@@ -392,18 +394,18 @@ class _NeworderState extends State<Neworder> {
                                 children: [
                                   AddressContainer(
                                       key: Key((0).toString()),
-                                      title: "Pickup Point",
+                                      title: "Pickup Address",
                                       address: controller.pickup,
                                       index: 0,
                                       subtitle:
-                                          "Add a pickup point for the courier"),
+                                          "Add a pickup address for the courier"),
                                   AddressContainer(
                                     key: Key((1).toString()),
-                                    title: "Drop Point",
+                                    title: "Drop address",
                                     address: controller.drop,
                                     index: 1,
                                     subtitle:
-                                        "Add a drop point for the courier",
+                                        "Add a drop address for the courier",
                                   ),
                                   ...controller.droplocations
                                       .asMap()
@@ -411,20 +413,20 @@ class _NeworderState extends State<Neworder> {
                                       .map(
                                         (e) => AddressContainer(
                                           key: Key((e.key + 2).toString()),
-                                          title: "Drop point",
+                                          title: "Drop address",
                                           address: e.value,
                                           subtitle:
-                                              "Add a drop point for the courier",
+                                              "Add a drop address for the courier",
                                           index: e.key + 2,
                                         ),
                                       )
                                       .toList(),
                                   AddressContainer(
-                                    key: const Key("Add delivery point"),
-                                    title: "Add a delivery point",
+                                    key: const Key("Add delivery address"),
+                                    title: "Add a delivery address",
                                     address: controller.pickup,
                                     subtitle:
-                                        "Add a drop point for the courier",
+                                        "Add more drop address for the courier",
                                     handleClick: () =>
                                         controller.addNewDropLocation(
                                       controller.initialaddress,
@@ -486,12 +488,6 @@ class _NeworderState extends State<Neworder> {
                                 Get.find();
                             var checks = addressController.droplocations
                                 .where((element) {
-                              print(element.text);
-                              print(element.latitude);
-                              print(element.longitude);
-                              print(element.address);
-                              print(element.phone_number);
-                              print(element.name);
                               return (element.text.isEmpty ||
                                   element.latitude == 0.0 ||
                                   element.longitude == 0.0 ||

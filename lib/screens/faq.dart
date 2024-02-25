@@ -14,6 +14,7 @@ class FAQ extends StatelessWidget {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         title: CustomAppBar(

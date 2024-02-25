@@ -3,7 +3,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 import 'package:instaport_customer/constants/colors.dart';
 import 'package:instaport_customer/screens/faq.dart';
-import 'package:instaport_customer/screens/new_order.dart';
 import 'package:instaport_customer/screens/past_orders.dart';
 import 'package:instaport_customer/screens/home.dart';
 import 'package:instaport_customer/screens/profile.dart';

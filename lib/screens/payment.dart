@@ -18,10 +18,12 @@ import 'package:instaport_customer/models/address_model.dart';
 import 'package:instaport_customer/models/coupon_model.dart';
 import 'package:instaport_customer/models/order_model.dart';
 import 'package:instaport_customer/models/price_model.dart';
+import 'package:instaport_customer/models/user_model.dart';
 import 'package:instaport_customer/screens/new_order.dart';
 import 'package:instaport_customer/services/location_service.dart';
 import 'package:instaport_customer/services/uppercase_textfield_formatter.dart';
 import 'package:http/http.dart' as http;
+import 'package:instaport_customer/utils/toast_manager.dart';
 
 class PaymentForm extends StatefulWidget {
   const PaymentForm({super.key});
@@ -44,24 +46,22 @@ class _PaymentFormState extends State<PaymentForm> {
   bool showpg = false;
   InAppWebViewController? webView;
   double discount = 0.0;
-  Address codAddress = Address(
-    text: "",
-    latitude: 0,
-    longitude: 0,
-    key: "",
-    building_and_flat: "",
-    floor_and_wing: "",
-    instructions: "",
-    phone_number: "",
-    address: "",
-    name: "",
-  );
+  Address? codAddress;
+  User? customer;
 
   void handlePreFetch(double srclat, double srclng, double destlat,
       double destlng, List<Address> droplocations) async {
+    var token = await _storage.read("token");
     double totalDistance = 0;
     double totalAmount = 0;
     var response = await http.get(Uri.parse("$apiUrl/price/get"));
+    final userResponse = await http.get(Uri.parse('$apiUrl/user'),
+        headers: {'Authorization': 'Bearer $token'});
+    final userData = UserDataResponse.fromJson(jsonDecode(userResponse.body));
+    userController.updateUser(userData.user);
+    setState(() {
+      customer = userData.user;
+    });
     final data = PriceManipulationResponse.fromJson(jsonDecode(response.body));
     if (srclat == 0.0 && srclng == 0.0 && destlat == 0.0 && destlng == 0.0) {
       return;
@@ -101,7 +101,7 @@ class _PaymentFormState extends State<PaymentForm> {
     }
     setState(() {
       final OrderController orderController = Get.find();
-      if (totalDistance <= 4.0) {
+      if (totalDistance <= 1.0) {
         var finalAmount =
             orderController.currentorder.parcel_weight == items[0] ||
                     orderController.currentorder.parcel_weight == items[1]
@@ -116,12 +116,16 @@ class _PaymentFormState extends State<PaymentForm> {
         var finalAmount =
             orderController.currentorder.parcel_weight == items[0] ||
                     orderController.currentorder.parcel_weight == items[1]
-                ? totalAmount
+                ? totalAmount + data.priceManipulation.baseOrderCharges
                 : orderController.currentorder.parcel_weight == items[2]
-                    ? totalAmount + 50
+                    ? totalAmount + 50 + data.priceManipulation.baseOrderCharges
                     : orderController.currentorder.parcel_weight == items[3]
-                        ? totalAmount + 100
-                        : totalAmount + 150;
+                        ? totalAmount +
+                            100 +
+                            data.priceManipulation.baseOrderCharges
+                        : totalAmount +
+                            150 +
+                            data.priceManipulation.baseOrderCharges;
         amount = finalAmount;
       }
       fetchLoading = false;
@@ -186,6 +190,7 @@ class _PaymentFormState extends State<PaymentForm> {
       'Authorization': 'Bearer $token',
       'Content-Type': 'application/json'
     };
+    int timestamp = DateTime.now().millisecondsSinceEpoch;
     if (paymentindex == 1) {
       // TODO: WALLET
       // print(orderController.currentorder.package);
@@ -209,7 +214,9 @@ class _PaymentFormState extends State<PaymentForm> {
         "parcel_value": orderController.currentorder.parcel_value,
         "amount": amount - discount,
         "commission": commission,
-        'droplocations': addressController.droplocations
+        'droplocations': addressController.droplocations,
+        'time_stamp': timestamp,
+        'timer': 0,
       });
       request.headers.addAll(headers);
       http.StreamedResponse response = await request.send();
@@ -221,6 +228,8 @@ class _PaymentFormState extends State<PaymentForm> {
           DatabaseReference ref =
               FirebaseDatabase.instance.ref("orders/${orderData.order.id}");
           await ref.set({"order": data["order"], "modified": ""});
+          orderController.resetFields();
+          addressController.resetfields();
         } else {
           print(data["message"]);
         }
@@ -229,36 +238,44 @@ class _PaymentFormState extends State<PaymentForm> {
       }
     } else if (paymentindex == 2) {
       // TODO: COD
-      var request = http.Request('POST', Uri.parse('$apiUrl/order/create'));
-      request.body = json.encode({
-        "pickup": orderController.currentorder.pickup.toJson(),
-        "drop": orderController.currentorder.drop.toJson(),
-        "delivery_type": orderController.currentorder.delivery_type,
-        "parcel_weight": orderController.currentorder.parcel_weight,
-        "phone_number": orderController.currentorder.phone_number,
-        "vehicle": orderController.currentorder.vehicle,
-        "status": "new",
-        "payment_method": "cod",
-        "package": orderController.currentorder.package,
-        "parcel_value": orderController.currentorder.parcel_value,
-        "amount": amount,
-        "payment_address": codAddress,
-        "commission": commission,
-        'droplocations': addressController.droplocations
-      });
-      request.headers.addAll(headers);
-      http.StreamedResponse response = await request.send();
-      if (response.statusCode == 200) {
-        var data = jsonDecode(await response.stream.bytesToString());
-        var orderData = OrderResponse.fromJson(data);
-        if (orderData.error == false) {
-          Get.dialog(const OrderSuccessDialog(), barrierDismissible: false);
-          DatabaseReference ref =
-              FirebaseDatabase.instance.ref("orders/${orderData.order.id}");
-          await ref.set({"order": data["order"], "modified": ""});
-        }
+      if (codAddress == null) {
+        ToastManager.showToast("Please choose the payment address");
       } else {
-        print(response.reasonPhrase);
+        var request = http.Request('POST', Uri.parse('$apiUrl/order/create'));
+        request.body = json.encode({
+          "pickup": orderController.currentorder.pickup.toJson(),
+          "drop": orderController.currentorder.drop.toJson(),
+          "delivery_type": orderController.currentorder.delivery_type,
+          "parcel_weight": orderController.currentorder.parcel_weight,
+          "phone_number": orderController.currentorder.phone_number,
+          "vehicle": orderController.currentorder.vehicle,
+          "status": "new",
+          "payment_method": "cod",
+          "package": orderController.currentorder.package,
+          "parcel_value": orderController.currentorder.parcel_value,
+          "amount": amount,
+          "payment_address": codAddress,
+          "commission": commission,
+          'droplocations': addressController.droplocations,
+          'time_stamp': timestamp,
+          'timer': 0,
+        });
+        request.headers.addAll(headers);
+        http.StreamedResponse response = await request.send();
+        if (response.statusCode == 200) {
+          var data = jsonDecode(await response.stream.bytesToString());
+          var orderData = OrderResponse.fromJson(data);
+          if (orderData.error == false) {
+            Get.dialog(const OrderSuccessDialog(), barrierDismissible: false);
+            DatabaseReference ref =
+                FirebaseDatabase.instance.ref("orders/${orderData.order.id}");
+            await ref.set({"order": data["order"], "modified": ""});
+            orderController.resetFields();
+            addressController.resetfields();
+          }
+        } else {
+          print(response.reasonPhrase);
+        }
       }
     } else if (paymentindex == 0) {
       // TODO: ONLINE
@@ -267,8 +284,6 @@ class _PaymentFormState extends State<PaymentForm> {
       //   showpg = true;
       // });
     }
-    // orderController.resetFields();
-    // addressController.resetfields();
   }
 
   @override
@@ -277,6 +292,7 @@ class _PaymentFormState extends State<PaymentForm> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
@@ -435,9 +451,9 @@ class _PaymentFormState extends State<PaymentForm> {
                                               Text(
                                                 "Wallet",
                                                 style: GoogleFonts.poppins(
-                                                  color: userController
-                                                              .user.wallet >
-                                                          amount
+                                                  color: customer != null &&
+                                                          customer!.wallet >
+                                                              amount
                                                       ? Colors.black
                                                       : Colors.black38,
                                                   fontSize: 16,
@@ -445,11 +461,11 @@ class _PaymentFormState extends State<PaymentForm> {
                                                 ),
                                               ),
                                               Text(
-                                                "Rs.${userController.user.wallet.toPrecision(1).toString()}",
+                                                "Rs.${customer != null ? customer!.wallet.toPrecision(1).toString() : 0}",
                                                 style: GoogleFonts.poppins(
-                                                  color: userController
-                                                              .user.wallet >
-                                                          amount
+                                                  color: customer != null &&
+                                                          customer!.wallet >
+                                                              amount
                                                       ? Colors.black
                                                       : Colors.red,
                                                   fontSize: 14,
@@ -565,9 +581,12 @@ class _PaymentFormState extends State<PaymentForm> {
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         border: Border.all(
-                                          color: codAddress.text ==
-                                                  ordercontroller
-                                                      .currentorder.pickup.text
+                                          color: codAddress != null &&
+                                                  codAddress!.key ==
+                                                      ordercontroller
+                                                          .currentorder
+                                                          .pickup
+                                                          .key
                                               ? accentColor
                                               : Colors.black12,
                                           width: 2,
@@ -617,9 +636,10 @@ class _PaymentFormState extends State<PaymentForm> {
                                       decoration: BoxDecoration(
                                         color: Colors.white,
                                         border: Border.all(
-                                          color: codAddress.text ==
-                                                  ordercontroller
-                                                      .currentorder.drop.text
+                                          color: codAddress != null &&
+                                                  codAddress!.key ==
+                                                      ordercontroller
+                                                          .currentorder.drop.key
                                               ? accentColor
                                               : Colors.black12,
                                           width: 2,
@@ -676,8 +696,9 @@ class _PaymentFormState extends State<PaymentForm> {
                                                 decoration: BoxDecoration(
                                                   color: Colors.white,
                                                   border: Border.all(
-                                                    color: codAddress.text ==
-                                                            e.value.text
+                                                    color: codAddress != null &&
+                                                            codAddress!.key ==
+                                                                e.value.key
                                                         ? accentColor
                                                         : Colors.black12,
                                                     width: 2,

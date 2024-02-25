@@ -65,6 +65,8 @@ class Orders {
   Rider? rider;
   List<OrderStatus> orderStatus;
   double amount;
+  Address? payment_address;
+
   Orders({
     required this.pickup,
     required this.drop,
@@ -85,6 +87,7 @@ class Orders {
     required this.amount,
     required this.orderStatus,
     this.rider,
+    this.payment_address,
   });
 
   factory Orders.fromJson(dynamic json) {
@@ -100,6 +103,7 @@ class Orders {
           }).toList();
     final id = json['_id'] as String;
     final delivery_type = json['delivery_type'] as String;
+    final payment_address = json['payment_address'] == null ? null : Address.fromJson(json["payment_address"]);
     final parcel_weight = json['parcel_weight'] as String;
     final phone_number = json['phone_number'] as String;
     final notify_sms = json['notify_sms'] as bool;
@@ -134,6 +138,7 @@ class Orders {
       amount: amount,
       rider: rider,
       orderStatus: orderStatus,
+      payment_address: payment_address,
     );
   }
 

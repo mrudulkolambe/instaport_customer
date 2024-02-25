@@ -14,6 +14,7 @@ import 'package:instaport_customer/main.dart';
 import 'package:instaport_customer/models/order_model.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:instaport_customer/utils/toast_manager.dart';
 
 class PastOrders extends StatefulWidget {
   const PastOrders({super.key});
@@ -45,17 +46,23 @@ class PastOrdersState extends State<PastOrders> {
         final response = await http
             .get(Uri.parse(url), headers: {'Authorization': 'Bearer $token'});
         final data = PastOrderResponse.fromJson(json.decode(response.body));
-        setState(() {
-          orders = data.orders;
-          loading = false;
-        });
+        // ToastManager.showToast(data.message);
         if (data.error) {
-        } else {}
+          setState(() {
+            loading = false;
+          });
+        } else {
+          setState(() {
+            orders = data.orders;
+            loading = false;
+          });
+        }
       } catch (error) {
         print("Error: $error");
+        ToastManager.showToast("Error: $error");
       }
     } else {
-      print("error");
+      ToastManager.showToast("error");
     }
   }
 
@@ -64,6 +71,7 @@ class PastOrdersState extends State<PastOrders> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         backgroundColor: Colors.white,
         automaticallyImplyLeading: false,
         title: CustomAppBar(

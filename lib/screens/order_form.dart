@@ -10,6 +10,8 @@ import 'package:instaport_customer/constants/colors.dart';
 import 'package:instaport_customer/controllers/address.dart';
 import 'package:instaport_customer/controllers/order.dart';
 import 'package:instaport_customer/screens/shipping_form.dart';
+import 'package:instaport_customer/utils/mask_fomatter.dart';
+import 'package:instaport_customer/utils/validator.dart';
 
 class OrderForm extends StatefulWidget {
   const OrderForm({super.key});
@@ -45,6 +47,7 @@ class _OrderFormState extends State<OrderForm> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         title: CustomAppBar(
@@ -66,7 +69,7 @@ class _OrderFormState extends State<OrderForm> {
                 key: _formKey,
                 child: Column(
                   children: <Widget>[
-                    const Label(label: "Package: "),
+                    const Label(label: "Parcel: "),
                     TextFormField(
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -250,22 +253,15 @@ class _OrderFormState extends State<OrderForm> {
                     const SizedBox(
                       height: 20,
                     ),
-                    const Label(label: "Parcel value: "),
+                    const Label(label: "Parcel cost: "),
                     TextFormField(
                       keyboardType: TextInputType.number,
                       controller: _parcelvalue,
-                      validator: (value) {
-                        if (value == null ||
-                            value.isEmpty ||
-                            int.parse(value) == 0) {
-                          return 'Invalid parcel value';
-                        }
-                        return null;
-                      },
+                      inputFormatters: [amountMask],
                       onChanged: (String value) {
                         if (value == "") {
                           ordercontroller.updatePackageValue(0);
-                        } else {
+                        }else{
                           ordercontroller.updatePackageValue(int.parse(value));
                         }
                       },
@@ -277,7 +273,7 @@ class _OrderFormState extends State<OrderForm> {
                               const BorderSide(width: 2, color: Colors.red),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        hintText: "Enter the parcel value",
+                        hintText: "Enter the parcel cost",
                         hintStyle: GoogleFonts.poppins(
                             fontSize: 14, color: Colors.black38),
                         enabledBorder: OutlineInputBorder(
@@ -318,14 +314,9 @@ class _OrderFormState extends State<OrderForm> {
                     ),
                     const Label(label: "Phone number: "),
                     TextFormField(
-                      validator: (value) {
-                        if (value == null ||
-                            value.isEmpty ||
-                            value.length < 10) {
-                          return 'Invalid phone number';
-                        }
-                        return null;
-                      },
+                      validator: (value) => validatePhoneNumber(value!),
+                      inputFormatters: [phoneNumberMask],
+                      autovalidateMode: AutovalidateMode.onUserInteraction,
                       controller: _phonecontroller,
                       onChanged: (String value) {
                         ordercontroller.updatePhoneNumber(value);
@@ -344,7 +335,7 @@ class _OrderFormState extends State<OrderForm> {
                               const BorderSide(width: 2, color: Colors.red),
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        hintText: "Enter your phone number",
+                        hintText: "Enter your phone number who places order",
                         hintStyle: GoogleFonts.poppins(
                           fontSize: 14,
                           color: Colors.black38,
@@ -378,7 +369,8 @@ class _OrderFormState extends State<OrderForm> {
                     GestureDetector(
                       onTap: () {
                         if (_formKey.currentState!.validate()) {
-                          orderController.updatePhoneNumber(_phonecontroller.text);
+                          orderController
+                              .updatePhoneNumber(_phonecontroller.text);
                           Get.to(() => const ShippingForm());
                         } else {
                           ScaffoldMessenger.of(context).showSnackBar(

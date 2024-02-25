@@ -1,18 +1,18 @@
 class SignInResponse {
   bool error;
   String message;
-  String token;
+  String? token;
 
   SignInResponse({
     required this.error,
     required this.message,
-    required this.token,
+    this.token,
   });
 
   factory SignInResponse.fromJson(dynamic json) {
     final error = json['error'] as bool;
     final message = json['message'] as String;
-    final token = json['token'] as String;
+    final token = json['token'];
     return SignInResponse(
       error: error,
       message: message,
@@ -52,6 +52,7 @@ class User {
   String role;
   double wallet;
   double holdAmount;
+  String image;
 
   User({
     required this.fullname,
@@ -61,6 +62,7 @@ class User {
     required this.role,
     required this.wallet,
     required this.holdAmount,
+    required this.image,
   });
 
   factory User.fromJson(dynamic json) {
@@ -71,6 +73,7 @@ class User {
     final role = json['role'] as String;
     final wallet = json['wallet'] + 0.0;
     final holdAmount = json['holdAmount'] + 0.0;
+    final image = json['image'];
     return User(
       fullname: fullname,
       mobileno: mobileno,
@@ -79,6 +82,7 @@ class User {
       role: role,
       wallet: wallet,
       holdAmount: holdAmount,
+      image: image,
     );
   }
 }

@@ -28,6 +28,7 @@ class _ShippingFormState extends State<ShippingForm> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         title: CustomAppBar(

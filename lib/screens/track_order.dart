@@ -11,9 +11,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:instaport_customer/components/appbar.dart';
 import 'package:instaport_customer/components/label.dart';
+import 'package:instaport_customer/models/price_model.dart';
 import 'package:instaport_customer/screens/edit_order.dart';
 import 'package:instaport_customer/screens/home.dart';
+import 'package:instaport_customer/screens/past_orders.dart';
 import 'package:instaport_customer/utils/timeformatter.dart';
+import 'package:instaport_customer/utils/toast_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:instaport_customer/constants/colors.dart';
 import 'package:http/http.dart' as http;
@@ -50,7 +53,17 @@ class _TrackOrderState extends State<TrackOrder> {
   double sheetHeight = 350.0;
   double cancelOrderSheetHeight = 0;
   Timer? _timer;
-  TextEditingController _reason = TextEditingController();
+  final TextEditingController _reason = TextEditingController();
+  PriceManipulation? price;
+
+  void handlePriceFetch() async {
+    var response = await http.get(Uri.parse("$apiUrl/price/get"));
+    final data = PriceManipulationResponse.fromJson(jsonDecode(response.body));
+    setState(() {
+      price = data.priceManipulation;
+    });
+  }
+
   Orders order_data = Orders(
     pickup: Address(
       text: "",
@@ -251,26 +264,30 @@ class _TrackOrderState extends State<TrackOrder> {
           .get(Uri.parse(url), headers: {'Authorization': 'Bearer $token'});
       final data = OrderResponse.fromJson(json.decode(response.body));
       markersAndPolylines(data.order);
-      if (data.order.rider != null && data.order.status != "delivered") {
-        _databaseListener = ref
-            .child('rider/${widget.data.rider!.id}')
-            .onValue
-            .listen((DatabaseEvent event) {
-          final data = event.snapshot.value;
-          final dynamic snapshotValue = json.encode(data);
-          if (snapshotValue != null) {
-            final data = RiderLocation.fromJson(jsonDecode(snapshotValue));
-            setState(() {
-              riderLocation = LatLng(data.latitude, data.longitude);
-            });
-          }
-        });
-      } else {
-        print("this is not correct");
-      }
+      // if (data.order.rider != null) {
       setState(() {
         order_data = data.order;
       });
+      try {
+        if (data.order.rider != null && data.order.status != "delivered") {
+          _databaseListener = ref
+              .child('rider/${widget.data.rider!.id}')
+              .onValue
+              .listen((DatabaseEvent event) {
+            final data = event.snapshot.value;
+            final dynamic snapshotValue = json.encode(data);
+            print(snapshotValue);
+            if (snapshotValue != null) {
+              final data = RiderLocation.fromJson(jsonDecode(snapshotValue));
+              setState(() {
+                riderLocation = LatLng(data.latitude, data.longitude);
+              });
+            }
+          });
+        } else {
+          // ToastManager.showToast('Error');
+        }
+      } catch (e) {}
     } else {}
   }
 
@@ -310,9 +327,11 @@ class _TrackOrderState extends State<TrackOrder> {
           FirebaseDatabase.instance.ref('/orders/${widget.data.id}').update(
             {"modified": "cancel"},
           );
+          ToastManager.showToast("Order cancelled");
           Get.to(() => Home());
         } else {
           print("Error: ${response.reasonPhrase}");
+          ToastManager.showToast("Error: ${response.reasonPhrase}");
         }
       }
     } catch (e) {}
@@ -442,11 +461,12 @@ class _TrackOrderState extends State<TrackOrder> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 60,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         title: CustomAppBar(
           title: "Tracking #${widget.data.id.toString().substring(18)}",
-          back: () => Get.back(),
+          back: () => Get.to(() => const PastOrders()),
         ),
       ),
       body: SafeArea(
@@ -455,7 +475,7 @@ class _TrackOrderState extends State<TrackOrder> {
             Stack(
               children: [
                 SizedBox(
-                  height: MediaQuery.of(context).size.height - 95,
+                  height: MediaQuery.of(context).size.height - 100,
                   width: MediaQuery.of(context).size.width,
                   child: Stack(
                     children: [
@@ -466,12 +486,12 @@ class _TrackOrderState extends State<TrackOrder> {
                         polylines: _polylineSet,
                         markers: {
                           ..._markers,
-                          if (order_data.status != "delivered")
-                            Marker(
-                              markerId: const MarkerId("Rider Location"),
-                              position: riderLocation,
-                              infoWindow: const InfoWindow(title: "Rider"),
-                            )
+                          // if (order_data.status != "delivered")
+                          Marker(
+                            markerId: const MarkerId("Rider Location"),
+                            position: riderLocation,
+                            infoWindow: const InfoWindow(title: "Rider"),
+                          )
                         },
                         mapType: MapType.normal,
                         initialCameraPosition: CameraPosition(
@@ -599,11 +619,128 @@ class _TrackOrderState extends State<TrackOrder> {
                               SizedBox(
                                 height: sheetHeight - 30,
                                 child: SingleChildScrollView(
+                                  padding: EdgeInsets.symmetric(horizontal: 25),
                                   child: Column(
                                     children: [
                                       const SizedBox(
                                         height: 10,
                                       ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Rs. ${(order_data.amount).toPrecision(2).toString()}",
+                                            style: GoogleFonts.poppins(
+                                              fontSize: 28,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 6,
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Weight: ",
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: 2,
+                                          ),
+                                          Text(
+                                            order_data.parcel_weight,
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 6,
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Parcel: ",
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: 2,
+                                          ),
+                                          Text(
+                                            order_data.package,
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 6,
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Order ID: ",
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: 2,
+                                          ),
+                                          Text(
+                                            "#${order_data.id.substring(18)}",
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 6,
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Payment: ",
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: 2,
+                                          ),
+                                          Text(
+                                            order_data.payment_method,
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(
+                                        height: 6,
+                                      ),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            "Time: ",
+                                            style: GoogleFonts.poppins(
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                          const SizedBox(
+                                            width: 2,
+                                          ),
+                                          Text(
+                                            readTimestamp(
+                                                order_data.time_stamp),
+                                            style: GoogleFonts.poppins(),
+                                          ),
+                                        ],
+                                      ),
+                                      if (!loading && order_data.rider != null)
+                                        const SizedBox(
+                                          height: 10,
+                                        ),
                                       if (!loading && order_data.rider != null)
                                         Text(
                                           order_data.orderStatus.isEmpty
@@ -621,7 +758,7 @@ class _TrackOrderState extends State<TrackOrder> {
                                                       : "Parcel Delivered",
                                           style: GoogleFonts.poppins(
                                             fontWeight: FontWeight.w500,
-                                            fontSize: 17,
+                                            fontSize: 14,
                                           ),
                                         ),
                                       const SizedBox(
@@ -629,171 +766,156 @@ class _TrackOrderState extends State<TrackOrder> {
                                       ),
                                       if (order_data.status != "delivered" &&
                                           order_data.status != "cancelled")
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 25.0),
-                                          child: Row(
-                                            children: [
-                                              Expanded(
-                                                child: GestureDetector(
-                                                  onTap: () => Get.to(
-                                                    () => EditOrderDetails(
-                                                      order: order_data,
-                                                    ),
+                                        Row(
+                                          children: [
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: () => Get.to(
+                                                  () => EditOrderDetails(
+                                                    order: order_data,
                                                   ),
-                                                  child: Container(
-                                                    height: 55,
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
-                                                      color: accentColor,
-                                                    ),
-                                                    child: Center(
-                                                      child: Text(
-                                                        "Edit",
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
+                                                ),
+                                                child: Container(
+                                                  height: 55,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                    color: accentColor,
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      "Edit",
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.w600,
                                                       ),
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                              const SizedBox(width: 10),
-                                              Expanded(
-                                                child: GestureDetector(
-                                                  onTap: order_data.status ==
-                                                          "delivered"
-                                                      ? () {}
-                                                      : cancelConfirm,
-                                                  child: Container(
-                                                    height: 55,
-                                                    decoration: BoxDecoration(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              10),
-                                                      color: accentColor,
-                                                    ),
-                                                    child: Center(
-                                                      child: Text(
-                                                        "Cancel",
-                                                        style:
-                                                            GoogleFonts.poppins(
-                                                          color: Colors.white,
-                                                          fontWeight:
-                                                              FontWeight.w600,
-                                                        ),
+                                            ),
+                                            const SizedBox(width: 10),
+                                            Expanded(
+                                              child: GestureDetector(
+                                                onTap: order_data.status ==
+                                                        "delivered"
+                                                    ? () {}
+                                                    : cancelConfirm,
+                                                child: Container(
+                                                  height: 55,
+                                                  decoration: BoxDecoration(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                    color: accentColor,
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      "Cancel",
+                                                      style:
+                                                          GoogleFonts.poppins(
+                                                        color: Colors.white,
+                                                        fontWeight:
+                                                            FontWeight.w600,
                                                       ),
                                                     ),
                                                   ),
                                                 ),
                                               ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
                                       if (order_data.status != "delivered")
                                         const SizedBox(
                                           height: 10,
                                         ),
                                       const Divider(),
-                                      Padding(
-                                        padding: EdgeInsets.symmetric(
-                                            horizontal: 25.0,
-                                            vertical:
-                                                order_data.status != "delivered"
-                                                    ? 10
-                                                    : 0),
-                                        child: Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
-                                          children: [
-                                            if (order_data.status !=
-                                                    "delivered" &&
-                                                order_data.rider != null)
-                                              Expanded(
-                                                child: Row(
-                                                  children: [
-                                                    ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                              30),
-                                                      child: order_data.rider ==
-                                                              null
-                                                          ? const CircularProgressIndicator()
-                                                          : Image.network(
-                                                              order_data
-                                                                  .rider!.image,
-                                                              height: 50,
-                                                              width: 50,
-                                                              fit: BoxFit.cover,
-                                                            ),
-                                                    ),
-                                                    const SizedBox(
-                                                      width: 10,
-                                                    ),
-                                                    Column(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          if (order_data.status !=
+                                                  "delivered" &&
+                                              order_data.rider != null)
+                                            Expanded(
+                                              child: Row(
+                                                children: [
+                                                  ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            30),
+                                                    child: order_data.rider ==
+                                                            null
+                                                        ? const CircularProgressIndicator()
+                                                        : Image.network(
+                                                            order_data
+                                                                .rider!.image,
+                                                            height: 50,
+                                                            width: 50,
+                                                            fit: BoxFit.cover,
+                                                          ),
+                                                  ),
+                                                  const SizedBox(
+                                                    width: 10,
+                                                  ),
+                                                  Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        order_data.rider == null
+                                                            ? "Fetching..."
+                                                            : order_data.rider!
+                                                                .fullname,
+                                                        style:
+                                                            GoogleFonts.poppins(
+                                                          fontWeight:
+                                                              FontWeight.w600,
+                                                        ),
+                                                        softWrap: false,
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow
+                                                            .ellipsis,
+                                                      ),
+                                                      if (order_data.rider !=
+                                                          null)
                                                         Text(
-                                                          order_data.rider ==
-                                                                  null
-                                                              ? "Fetching..."
-                                                              : order_data
-                                                                  .rider!
-                                                                  .fullname,
+                                                          "#${order_data.rider!.id.substring(18)}",
                                                           style: GoogleFonts
                                                               .poppins(
-                                                            fontWeight:
-                                                                FontWeight.w600,
+                                                            fontSize: 12,
+                                                            color: Colors.grey,
                                                           ),
-                                                          softWrap: false,
-                                                          maxLines: 1,
-                                                          overflow: TextOverflow
-                                                              .ellipsis,
                                                         ),
-                                                        if (order_data.rider !=
-                                                            null)
-                                                          Text(
-                                                            "#${order_data.rider!.id.substring(18)}",
-                                                            style: GoogleFonts
-                                                                .poppins(
-                                                              fontSize: 12,
-                                                              color:
-                                                                  Colors.grey,
-                                                            ),
-                                                          ),
-                                                      ],
-                                                    )
-                                                  ],
-                                                ),
+                                                    ],
+                                                  )
+                                                ],
                                               ),
-                                            if (order_data.status !=
-                                                    "delivered" &&
-                                                order_data.rider != null)
-                                              IconButton(
-                                                onPressed: () => _makePhoneCall(
-                                                    order_data.rider!.mobileno),
-                                                icon: const Icon(Icons.call),
-                                              ),
-                                            const SizedBox(
-                                              width: 5,
                                             ),
-                                            if (order_data.status !=
-                                                    "delivered" &&
-                                                order_data.rider != null)
-                                              IconButton(
-                                                onPressed: () => _whatsapp(
-                                                    order_data.rider!.mobileno),
-                                                icon: const Icon(Icons.message),
-                                              )
-                                          ],
-                                        ),
+                                          if (order_data.status !=
+                                                  "delivered" &&
+                                              order_data.rider != null)
+                                            IconButton(
+                                              onPressed: () => _makePhoneCall(
+                                                  order_data.rider!.mobileno),
+                                              icon: const Icon(Icons.call),
+                                            ),
+                                          const SizedBox(
+                                            width: 5,
+                                          ),
+                                          if (order_data.status !=
+                                                  "delivered" &&
+                                              order_data.rider != null)
+                                            IconButton(
+                                              onPressed: () => _whatsapp(
+                                                  order_data.rider!.mobileno),
+                                              icon: const Icon(Icons.message),
+                                            )
+                                        ],
                                       ),
                                       const SizedBox(
                                         height: 20,
@@ -808,7 +930,7 @@ class _TrackOrderState extends State<TrackOrder> {
                                         ),
                                       if (order_data.rider == null)
                                         Text(
-                                          "Looking for riders",
+                                          "Looking for nearby riders",
                                           style: GoogleFonts.poppins(
                                             fontWeight: FontWeight.w500,
                                           ),
@@ -823,145 +945,143 @@ class _TrackOrderState extends State<TrackOrder> {
                                                   const SizedBox(
                                                     height: 5,
                                                   ),
-                                                  Padding(
-                                                    padding: const EdgeInsets
-                                                        .symmetric(
-                                                      horizontal: 25.0,
-                                                    ),
-                                                    child: Row(
-                                                      crossAxisAlignment:
-                                                          CrossAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        Column(
-                                                          children: [
-                                                            const Icon(
-                                                              Icons
-                                                                  .radio_button_checked,
-                                                              color:
-                                                                  accentColor,
+                                                  Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Column(
+                                                        children: [
+                                                          const Icon(
+                                                            Icons
+                                                                .radio_button_checked,
+                                                            color: accentColor,
+                                                          ),
+                                                          const SizedBox(
+                                                            height: 5,
+                                                          ),
+                                                          if (e.key !=
+                                                              order_data
+                                                                      .orderStatus
+                                                                      .length -
+                                                                  1)
+                                                            const DottedLine(
+                                                              direction:
+                                                                  Axis.vertical,
+                                                              lineLength: 45,
+                                                              lineThickness:
+                                                                  2.0,
+                                                              dashLength: 5.0,
+                                                              dashColor:
+                                                                  Colors.black,
+                                                              dashRadius: 4.0,
+                                                              dashGapLength:
+                                                                  3.0,
+                                                              dashGapColor: Colors
+                                                                  .transparent,
+                                                              dashGapRadius:
+                                                                  0.0,
                                                             ),
-                                                            const SizedBox(
-                                                              height: 5,
-                                                            ),
-                                                            if (e.key !=
-                                                                order_data
-                                                                        .orderStatus
-                                                                        .length -
-                                                                    1)
-                                                              const DottedLine(
-                                                                direction: Axis
-                                                                    .vertical,
-                                                                lineLength: 45,
-                                                                lineThickness:
-                                                                    2.0,
-                                                                dashLength: 5.0,
-                                                                dashColor:
-                                                                    Colors
-                                                                        .black,
-                                                                dashRadius: 4.0,
-                                                                dashGapLength:
-                                                                    3.0,
-                                                                dashGapColor: Colors
-                                                                    .transparent,
-                                                                dashGapRadius:
-                                                                    0.0,
+                                                        ],
+                                                      ),
+                                                      const SizedBox(
+                                                        width: 15,
+                                                      ),
+                                                      Row(
+                                                        children: [
+                                                          Column(
+                                                            children: [
+                                                              SizedBox(
+                                                                width: MediaQuery
+                                                                            .of(
+                                                                      context,
+                                                                    )
+                                                                        .size
+                                                                        .width -
+                                                                    50 -
+                                                                    30 -
+                                                                    15,
+                                                                child: Text(
+                                                                  e.key == 0
+                                                                      ? "Pickup Started"
+                                                                      : e.key ==
+                                                                              1
+                                                                          ? "Parcel Pickup Up"
+                                                                          : e.key <= order_data.orderStatus.length - 1 && e.key > 1 && e.value.message != "Delivered"
+                                                                              ? "Parcel Dropped"
+                                                                              : "Order completed",
+                                                                  style: GoogleFonts
+                                                                      .poppins(
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .w600,
+                                                                  ),
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  maxLines: 1,
+                                                                  softWrap:
+                                                                      false,
+                                                                ),
                                                               ),
-                                                          ],
-                                                        ),
-                                                        const SizedBox(
-                                                          width: 15,
-                                                        ),
-                                                        Row(
-                                                          children: [
-                                                            Column(
-                                                              children: [
-                                                                SizedBox(
-                                                                  width: MediaQuery
-                                                                          .of(
-                                                                        context,
-                                                                      ).size.width -
-                                                                      50 -
-                                                                      30 -
-                                                                      15,
-                                                                  child: Text(
-                                                                    e.key == 0
-                                                                        ? "Pickup Started"
-                                                                        : e.key ==
-                                                                                1
-                                                                            ? "Parcel Pickup Up"
-                                                                            : e.key <= order_data.orderStatus.length - 1 && e.key > 1 && e.value.message != "Delivered"
-                                                                                ? "Parcel Dropped"
-                                                                                : "Order completed",
-                                                                    style: GoogleFonts
-                                                                        .poppins(
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w600,
-                                                                    ),
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    maxLines: 1,
-                                                                    softWrap:
-                                                                        false,
+                                                              SizedBox(
+                                                                width: MediaQuery
+                                                                            .of(
+                                                                      context,
+                                                                    )
+                                                                        .size
+                                                                        .width -
+                                                                    50 -
+                                                                    30 -
+                                                                    10,
+                                                                child: Text(
+                                                                  e.value
+                                                                      .message,
+                                                                  style: GoogleFonts
+                                                                      .poppins(
+                                                                    fontSize:
+                                                                        12,
                                                                   ),
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  maxLines: 1,
+                                                                  softWrap:
+                                                                      false,
                                                                 ),
-                                                                SizedBox(
-                                                                  width: MediaQuery
-                                                                          .of(
-                                                                        context,
-                                                                      ).size.width -
-                                                                      50 -
-                                                                      30 -
-                                                                      10,
-                                                                  child: Text(
-                                                                    e.value
-                                                                        .message,
-                                                                    style: GoogleFonts
-                                                                        .poppins(
-                                                                      fontSize:
-                                                                          12,
-                                                                    ),
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    maxLines: 1,
-                                                                    softWrap:
-                                                                        false,
+                                                              ),
+                                                              SizedBox(
+                                                                width: MediaQuery
+                                                                            .of(
+                                                                      context,
+                                                                    )
+                                                                        .size
+                                                                        .width -
+                                                                    50 -
+                                                                    30 -
+                                                                    10,
+                                                                child: Text(
+                                                                  readTimestamp(e
+                                                                      .value
+                                                                      .timestamp),
+                                                                  style: GoogleFonts
+                                                                      .poppins(
+                                                                    fontSize:
+                                                                        12,
                                                                   ),
+                                                                  overflow:
+                                                                      TextOverflow
+                                                                          .ellipsis,
+                                                                  maxLines: 1,
+                                                                  softWrap:
+                                                                      false,
                                                                 ),
-                                                                SizedBox(
-                                                                  width: MediaQuery
-                                                                          .of(
-                                                                        context,
-                                                                      ).size.width -
-                                                                      50 -
-                                                                      30 -
-                                                                      10,
-                                                                  child: Text(
-                                                                    readTimestamp(e
-                                                                        .value
-                                                                        .timestamp),
-                                                                    style: GoogleFonts
-                                                                        .poppins(
-                                                                      fontSize:
-                                                                          12,
-                                                                    ),
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    maxLines: 1,
-                                                                    softWrap:
-                                                                        false,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          ],
-                                                        )
-                                                      ],
-                                                    ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ],
+                                                      )
+                                                    ],
                                                   ),
                                                 ],
                                               ),
@@ -1039,7 +1159,7 @@ class _TrackOrderState extends State<TrackOrder> {
                                           Row(
                                             children: [
                                               Text(
-                                                "You will be charged 40Rs",
+                                                "You will be charged ${price == null ? 00 : price!.cancellationCharges}Rs",
                                                 style: GoogleFonts.poppins(
                                                   fontSize: 12,
                                                   fontWeight: FontWeight.w600,

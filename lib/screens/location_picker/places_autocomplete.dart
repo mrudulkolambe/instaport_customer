@@ -121,7 +121,6 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                             },
                             onMapCreated: (controller) {
                               setState(() {
-                                // print("${widget.latitude}, ${widget.longitude}");
                                 _googleMapController = controller;
                                 if (widget.latitude != 0.0 &&
                                     widget.longitude != 0.0) {

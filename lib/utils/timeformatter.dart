@@ -15,7 +15,5 @@ String readTimestampAsDate(int timestamp) {
 String readTimestampAsTime(int timestamp) {
   var format = DateFormat('HH:mm');
   var date = DateTime.fromMillisecondsSinceEpoch(timestamp);
-  print(timestamp);
-  print(date);
   return format.format(date);
 }

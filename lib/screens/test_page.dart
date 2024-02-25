@@ -35,6 +35,7 @@ class _TestPageState extends State<TestPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        toolbarHeight: 60,
         title: Text('Custom Stepper'),
       ),
       body: Padding(

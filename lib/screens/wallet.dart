@@ -83,6 +83,7 @@ class _WalletState extends State<Wallet> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         surfaceTintColor: Colors.white,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,

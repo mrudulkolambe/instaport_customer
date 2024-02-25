@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:instaport_customer/components/getdialog.dart';
 import 'package:instaport_customer/controllers/order.dart';
 import 'package:instaport_customer/main.dart';
+import 'package:instaport_customer/utils/toast_manager.dart';
 
 final _storage = GetStorage();
 
@@ -37,7 +38,7 @@ void walletPayment(OrderController orderController, double amount, double discou
     if (data["error"] == false) {
       Get.dialog(const OrderSuccessDialog());
     } else {
-      print(data["message"]);
+      ToastManager.showToast(data["message"]);
     }
   } else {
     // print(response.reasonPhrase);

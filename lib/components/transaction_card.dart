@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:instaport_customer/models/transaction_model.dart';
 import 'package:instaport_customer/constants/colors.dart';
+import 'package:instaport_customer/utils/timeformatter.dart';
 import 'package:intl/intl.dart';
 
 class TransactionCard extends StatefulWidget {
@@ -35,9 +36,6 @@ class _TransactionCardState extends State<TransactionCard> {
 
   @override
   Widget build(BuildContext context) {
-    DateTime dateTime =
-        DateTime.fromMillisecondsSinceEpoch(widget.data.timestamp);
-    String formattedTime = formatDateTime(dateTime);
     return GestureDetector(
       // onTap: () => Get.to(() => TrackOrder(data: data)),
       child: Container(
@@ -99,7 +97,7 @@ class _TransactionCardState extends State<TransactionCard> {
                             height: 4,
                           ),
                           Text(
-                            formattedTime,
+                            readTimestamp(widget.data.timestamp),
                             style: GoogleFonts.poppins(
                               color: Colors.black,
                               fontSize: 12,

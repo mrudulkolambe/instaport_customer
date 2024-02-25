@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -21,6 +22,9 @@ import 'package:instaport_customer/models/places_model.dart';
 import 'package:instaport_customer/models/price_model.dart';
 import 'package:instaport_customer/screens/track_order.dart';
 import 'package:instaport_customer/services/location_service.dart';
+import 'package:instaport_customer/utils/mask_fomatter.dart';
+import 'package:instaport_customer/utils/toast_manager.dart';
+import 'package:instaport_customer/utils/validator.dart';
 import 'package:uuid/uuid.dart';
 
 class EditOrderDetails extends StatefulWidget {
@@ -47,6 +51,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
   bool loading = true;
   final FocusNode _focusNode = FocusNode();
   List<Place> places = [];
+  bool updateLoading = false;
+  Address? paymentAddress;
 
   @override
   void initState() {
@@ -83,6 +89,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
           address.add(data.order.pickup);
           address.add(data.order.drop);
           address.addAll(data.order.droplocations);
+          paymentAddress = data.order.payment_address;
         });
       } else {}
     } catch (e) {}
@@ -91,6 +98,9 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
   GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   void submitForm() async {
     if (_formKey.currentState!.validate()) {
+      setState(() {
+        updateLoading = true;
+      });
       final ConfirmController confirmController = Get.put(ConfirmController());
       final token = await storage.read("token");
       var amount = await handlePreFetch();
@@ -104,33 +114,57 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
       var mAddress = List.from(address, growable: true);
       mAddress.removeAt(0);
       mAddress.removeAt(0);
-      request.body = json.encode({
-        "_id": order!.id,
-        "pickup": address.first,
-        "drop": address[1],
-        "droplocations": mAddress.isEmpty ? [] : mAddress,
-        "parcel_weight": dropdownValue,
-        "phone_number": _phonenumbercontroller.text,
-        "package": _packagecontroller.text,
-        "parcel_value": _parcelvaluecontroller.text,
-        "amount": amount,
-        'hold': oldAmount - amount
-      });
+      if (order!.payment_method == "cod") {
+        request.body = json.encode({
+          "_id": order!.id,
+          "pickup": address.first,
+          "drop": address[1],
+          "droplocations": mAddress.isEmpty ? [] : mAddress,
+          "parcel_weight": dropdownValue,
+          "phone_number": _phonenumbercontroller.text,
+          "package": _packagecontroller.text,
+          "parcel_value": _parcelvaluecontroller.text,
+          "amount": amount,
+          'hold': oldAmount - amount,
+          'payment_address': paymentAddress
+        });
+      } else {
+        request.body = json.encode({
+          "_id": order!.id,
+          "pickup": address.first,
+          "drop": address[1],
+          "droplocations": mAddress.isEmpty ? [] : mAddress,
+          "parcel_weight": dropdownValue,
+          "phone_number": _phonenumbercontroller.text,
+          "package": _packagecontroller.text,
+          "parcel_value": _parcelvaluecontroller.text,
+          "amount": amount,
+          'hold': oldAmount - amount
+        });
+      }
       request.headers.addAll(headers);
       if (result) {
         http.StreamedResponse response = await request.send();
         if (response.statusCode == 200) {
-          var json = await response.stream.bytesToString();
+          var data = await response.stream.bytesToString();
+          var json = jsonDecode(data);
           FirebaseDatabase.instance.ref('/orders/${order!.id}').update(
-            {"modified": "data", "order": jsonDecode(json)["order"]},
+            {"modified": "data", "order": json["order"]},
           );
           Get.back();
+          ToastManager.showToast("${json["message"]}");
         } else {
-          print("Error: ${response.reasonPhrase}");
+          ToastManager.showToast("${response.reasonPhrase}");
         }
       }
+      setState(() {
+        updateLoading = false;
+      });
     } else {
-      Get.snackbar("Error", "Form incompletely filled!");
+      ToastManager.showToast("Form incompletely filled!");
+      setState(() {
+        updateLoading = false;
+      });
     }
   }
 
@@ -144,8 +178,6 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
     List<Address> mAddress = List.from(address, growable: true);
     mAddress.removeAt(0);
     mAddress.removeAt(0);
-    print(address);
-    print(mAddress);
     var distanceMain = await LocationService().fetchDistance(
       address[0].latitude,
       address[0].longitude,
@@ -177,7 +209,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                 data.priceManipulation.additionalPerKilometerCharge;
       }
     }
-    if (totalDistance <= 4.0) {
+    if (totalDistance <= 1.0) {
       var finalAmount =
           order!.parcel_weight == items[0] || order!.parcel_weight == items[1]
               ? data.priceManipulation.baseOrderCharges
@@ -188,14 +220,14 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                       : data.priceManipulation.baseOrderCharges + 150;
       return finalAmount;
     } else {
-      var finalAmount =
-          order!.parcel_weight == items[0] || order!.parcel_weight == items[1]
-              ? totalAmount
-              : order!.parcel_weight == items[2]
-                  ? totalAmount + 50
-                  : order!.parcel_weight == items[3]
-                      ? totalAmount + 100
-                      : totalAmount + 150;
+      var finalAmount = order!.parcel_weight == items[0] ||
+              order!.parcel_weight == items[1]
+          ? totalAmount + data.priceManipulation.baseOrderCharges
+          : order!.parcel_weight == items[2]
+              ? totalAmount + 50 + data.priceManipulation.baseOrderCharges
+              : order!.parcel_weight == items[3]
+                  ? totalAmount + 100 + data.priceManipulation.baseOrderCharges
+                  : totalAmount + 150 + data.priceManipulation.baseOrderCharges;
       return finalAmount;
     }
   }
@@ -205,9 +237,13 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
     bool result = await confirmController.showRemoveConfirmDialog();
     if (result) {
       setState(() {
-        print("Initial Address: ${address.length}");
-        address.removeAt(index);
-        print("Later: ${address.length}");
+        if (paymentAddress != null &&
+            address[index].key == paymentAddress!.key && order!.payment_method == "cod") {
+              paymentAddress = address[1];
+          address.removeAt(index);
+        } else {
+          address.removeAt(index);
+        }
       });
     } else {
       print("Event Cancelled");
@@ -241,6 +277,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
       resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         surfaceTintColor: Colors.transparent,
         automaticallyImplyLeading: false,
         backgroundColor: const Color.fromRGBO(255, 255, 255, 1),
@@ -327,13 +364,9 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                     ),
                     const Label(label: "Phone Number: "),
                     TextFormField(
+                      validator: (value) => validatePhoneNumber(value!),
+                      inputFormatters: [phoneNumberMask],
                       autovalidateMode: AutovalidateMode.onUserInteraction,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Invalid number';
-                        }
-                        return null;
-                      },
                       keyboardType: TextInputType.phone,
                       style: GoogleFonts.poppins(
                         color: Colors.black,
@@ -835,6 +868,9 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                       ),
                                       const Label(label: "Phone Number: "),
                                       TextFormField(
+                                        validator: (value) =>
+                                            validatePhoneNumber(value!),
+                                        inputFormatters: [phoneNumberMask],
                                         autovalidateMode:
                                             AutovalidateMode.onUserInteraction,
                                         enabled: check.isEmpty,
@@ -853,14 +889,6 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                           });
                                         },
                                         initialValue: e.value.phone_number,
-                                        validator: (value) {
-                                          if (value == null ||
-                                              value.isEmpty ||
-                                              value.length < 10) {
-                                            return 'Invalid phone number';
-                                          }
-                                          return null;
-                                        },
                                         keyboardType: TextInputType.phone,
                                         style: GoogleFonts.poppins(
                                           color: Colors.black,
@@ -1518,19 +1546,19 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                       ],
                     );
                   }),
-                  SizedBox(
+                  const SizedBox(
                     height: 10,
                   ),
                   GestureDetector(
                     onTap: () => order!.status == "cancelled"
-                        ? Get.snackbar("Error",
-                            "You cannot add drop points after cancellation!")
+                        ? ToastManager.showToast(
+                            "You cannot add drop addresses after cancellation!")
                         : order!.status == "delivered"
-                            ? Get.snackbar("Error",
-                                "You cannot add drop points when the order is completed")
+                            ? ToastManager.showToast(
+                                "You cannot add drop addresses when the order is completed")
                             : handleAdd(),
                     child: Container(
-                      padding: EdgeInsets.symmetric(
+                      padding: const EdgeInsets.symmetric(
                         horizontal: 0,
                         vertical: 15,
                       ),
@@ -1544,7 +1572,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                       ),
                       child: Center(
                         child: Text(
-                          "Add Point",
+                          "Add address",
                           style: GoogleFonts.poppins(
                             fontWeight: FontWeight.w600,
                           ),
@@ -1565,13 +1593,18 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Center(
-                          child: Text(
-                            "Update Order",
-                            style: GoogleFonts.poppins(
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
+                          child: updateLoading
+                              ? const SpinKitFadingCircle(
+                                  color: Colors.white,
+                                  size: 20,
+                                )
+                              : Text(
+                                  "Update Order",
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
                         )),
                   )
                 ],

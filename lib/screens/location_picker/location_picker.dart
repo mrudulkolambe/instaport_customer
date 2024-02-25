@@ -9,7 +9,9 @@ import 'package:instaport_customer/controllers/address.dart';
 import 'package:instaport_customer/controllers/order.dart';
 import 'package:instaport_customer/models/address_model.dart';
 import 'package:instaport_customer/screens/new_order.dart';
+import 'package:instaport_customer/utils/mask_fomatter.dart';
 import 'package:instaport_customer/utils/timeformatter.dart';
+import 'package:instaport_customer/utils/validator.dart';
 import 'package:uuid/uuid.dart';
 
 class LocationPicker extends StatefulWidget {
@@ -170,7 +172,6 @@ class _LocationPickerState extends State<LocationPicker> {
         initialEntryMode: TimePickerEntryMode.inputOnly,
         initialTime: TimeOfDay.fromDateTime(selectedDateTime),
       );
-      print(pickedTime);
       if (pickedTime != null) {
         setState(() {
           selectedDateTime = DateTime(
@@ -193,6 +194,7 @@ class _LocationPickerState extends State<LocationPicker> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
+        toolbarHeight: 60,
         automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.white,
@@ -266,14 +268,9 @@ class _LocationPickerState extends State<LocationPicker> {
                       ),
                       const Label(label: "Phone Number: "),
                       TextFormField(
-                        validator: (value) {
-                          if (value == null ||
-                              value.isEmpty ||
-                              value.length < 10) {
-                            return 'Invalid phone number';
-                          }
-                          return null;
-                        },
+                        validator: (value) => validatePhoneNumber(value!),
+                        inputFormatters: [phoneNumberMask],
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                         controller: _phonecontroller,
                         keyboardType: TextInputType.phone,
                         style: GoogleFonts.poppins(
@@ -335,18 +332,21 @@ class _LocationPickerState extends State<LocationPicker> {
                             }
                             return null;
                           },
-                          keyboardType: TextInputType.datetime,
-                          focusNode: _datetimefocusnode,
+                          keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          inputFormatters: [dateMask],
                           controller: _datecontroller,
                           style: GoogleFonts.poppins(
                             color: Colors.black,
                             fontSize: 13,
                           ),
-                          onTap: _removeFocus,
                           decoration: InputDecoration(
                             suffixIcon: IconButton(
                               onPressed: () => _selectDateTime(
-                                  context, _datecontroller, "date"),
+                                context,
+                                _datecontroller,
+                                "date",
+                              ),
                               icon: const Icon(
                                 Icons.calendar_today_outlined,
                                 color: Colors.black,
@@ -411,14 +411,15 @@ class _LocationPickerState extends State<LocationPicker> {
                                   }
                                   return null;
                                 },
-                                keyboardType: TextInputType.datetime,
-                                focusNode: _datetimefocusnode,
+                                keyboardType: TextInputType.number,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                                inputFormatters: [timeMask],
                                 controller: _fromtimecontroller,
                                 style: GoogleFonts.poppins(
                                   color: Colors.black,
                                   fontSize: 13,
                                 ),
-                                onTap: _removeFocus,
                                 decoration: InputDecoration(
                                   suffixIcon: IconButton(
                                     onPressed: () => _selectDateTime(
@@ -482,14 +483,15 @@ class _LocationPickerState extends State<LocationPicker> {
                                   }
                                   return null;
                                 },
-                                keyboardType: TextInputType.datetime,
-                                focusNode: _datetimefocusnode,
+                                keyboardType: TextInputType.number,
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                                inputFormatters: [timeMask],
                                 controller: _totimecontroller,
                                 style: GoogleFonts.poppins(
                                   color: Colors.black,
                                   fontSize: 13,
                                 ),
-                                onTap: _removeFocus,
                                 decoration: InputDecoration(
                                   suffixIcon: IconButton(
                                     onPressed: () => _selectDateTime(

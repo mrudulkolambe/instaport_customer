@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
+import 'package:instaport_customer/utils/toast_manager.dart';
 
 class ContactPickerWidget extends StatefulWidget {
   final TextEditingController textcontroller;
@@ -16,12 +17,15 @@ class _ContactPickerWidgetState extends State<ContactPickerWidget> {
     if (permissionGranted) {
       Contact? selectedContact = await FlutterContacts.openExternalPick();
       if (selectedContact != null) {
-        widget.textcontroller.text =  selectedContact.phones[0].normalizedNumber;
-      }else{
+        widget.textcontroller.text = selectedContact.phones[0].normalizedNumber
+                .startsWith("+91")
+            ? "+91 ${selectedContact.phones[0].normalizedNumber.substring(3, 8)} ${selectedContact.phones[0].normalizedNumber.substring(8, 13)}"
+            : "+91 ${selectedContact.phones[0].normalizedNumber.substring(0, 5)} ${selectedContact.phones[0].normalizedNumber.substring(5, 10)}";
+      } else {
         widget.textcontroller.text = "";
       }
     } else {
-      print("Permission denied!");
+      ToastManager.showToast("Permission denied!");
     }
   }
 

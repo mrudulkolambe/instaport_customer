@@ -8,8 +8,9 @@ import 'package:http/http.dart' as http;
 import 'package:instaport_customer/controllers/order.dart';
 import 'package:instaport_customer/main.dart';
 import 'package:instaport_customer/models/order_model.dart';
+import 'package:instaport_customer/utils/toast_manager.dart';
 
-  final storage = GetStorage();
+final storage = GetStorage();
 Future<void> getPastOrders() async {
   final OrderController orderController = Get.put(OrderController());
   final token = await storage.read("token");
@@ -21,9 +22,12 @@ Future<void> getPastOrders() async {
       final data = PastOrderResponse.fromJson(json.decode(response.body));
       orderController.updateOrders(data.orders);
       if (data.error) {
+        ToastManager.showToast(data.message);
       } else {}
-    } catch (error) {}
+    } catch (error) {
+      ToastManager.showToast(error.toString());
+    }
   } else {
-    print("error");
+    ToastManager.showToast("Something went wrong!");
   }
 }

@@ -12,6 +12,9 @@ import 'package:instaport_customer/models/user_model.dart';
 import 'package:instaport_customer/screens/create_account.dart';
 import 'package:http/http.dart' as http;
 import 'package:instaport_customer/screens/home.dart';
+import 'package:instaport_customer/utils/mask_fomatter.dart';
+import 'package:instaport_customer/utils/toast_manager.dart';
+import 'package:instaport_customer/utils/validator.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -48,70 +51,73 @@ class _LoginState extends State<Login> {
               const SizedBox(
                 height: 20,
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Container(
-                    width: (MediaQuery.of(context).size.width - 50) / 2,
-                    height: 50,
-                    decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(10),
-                        bottomLeft: Radius.circular(10),
-                      ),
-                      border: Border(
-                          bottom: BorderSide(width: 1, color: Colors.black),
-                          left: BorderSide(width: 1, color: Colors.black),
-                          top: BorderSide(width: 1, color: Colors.black),
-                          right: BorderSide(width: 0.5, color: Colors.black)),
-                      color: accentColor,
-                    ),
-                    child: Center(
-                        child: Text(
-                      "For Individuals",
-                      style: GoogleFonts.poppins(
-                          color: Colors.black,
-                          fontSize: 13,
-                        ),
-                    )),
-                  ),
-                  Container(
-                    width: (MediaQuery.of(context).size.width - 50) / 2,
-                    height: 50,
-                    decoration: const BoxDecoration(
-                      borderRadius: BorderRadius.only(
-                        topRight: Radius.circular(10),
-                        bottomRight: Radius.circular(10),
-                      ),
-                      border: Border(
-                        bottom: BorderSide(width: 1, color: Colors.black),
-                        right: BorderSide(width: 1, color: Colors.black),
-                        top: BorderSide(width: 1, color: Colors.black),
-                        left: BorderSide(width: 0.5, color: Colors.black),
-                      ),
-                      color: accentColor,
-                    ),
-                    child: Center(
-                      child: Text(
-                        "For Business",
-                        style: GoogleFonts.poppins(
-                          color: Colors.black,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(
-                height: 30,
-              ),
+              // Row(
+              //   mainAxisAlignment: MainAxisAlignment.center,
+              //   children: <Widget>[
+              //     Container(
+              //       width: (MediaQuery.of(context).size.width - 50) / 2,
+              //       height: 50,
+              //       decoration: const BoxDecoration(
+              //         borderRadius: BorderRadius.only(
+              //           topLeft: Radius.circular(10),
+              //           bottomLeft: Radius.circular(10),
+              //         ),
+              //         border: Border(
+              //             bottom: BorderSide(width: 1, color: Colors.black),
+              //             left: BorderSide(width: 1, color: Colors.black),
+              //             top: BorderSide(width: 1, color: Colors.black),
+              //             right: BorderSide(width: 0.5, color: Colors.black)),
+              //         color: accentColor,
+              //       ),
+              //       child: Center(
+              //           child: Text(
+              //         "For Individuals",
+              //         style: GoogleFonts.poppins(
+              //           color: Colors.black,
+              //           fontSize: 13,
+              //         ),
+              //       )),
+              //     ),
+              //     Container(
+              //       width: (MediaQuery.of(context).size.width - 50) / 2,
+              //       height: 50,
+              //       decoration: const BoxDecoration(
+              //         borderRadius: BorderRadius.only(
+              //           topRight: Radius.circular(10),
+              //           bottomRight: Radius.circular(10),
+              //         ),
+              //         border: Border(
+              //           bottom: BorderSide(width: 1, color: Colors.black),
+              //           right: BorderSide(width: 1, color: Colors.black),
+              //           top: BorderSide(width: 1, color: Colors.black),
+              //           left: BorderSide(width: 0.5, color: Colors.black),
+              //         ),
+              //         color: accentColor,
+              //       ),
+              //       child: Center(
+              //         child: Text(
+              //           "For Business",
+              //           style: GoogleFonts.poppins(
+              //             color: Colors.black,
+              //             fontSize: 13,
+              //           ),
+              //         ),
+              //       ),
+              //     ),
+              //   ],
+              // ),
+              // const SizedBox(
+              //   height: 30,
+              // ),
               Column(
                 children: [
                   Column(
                     children: [
                       const Label(label: "Phone Number: "),
                       TextFormField(
+                        validator: (value) => validatePhoneNumber(value!),
+                        inputFormatters: [phoneNumberMask],
+                        autovalidateMode: AutovalidateMode.onUserInteraction,
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         style: GoogleFonts.poppins(
@@ -228,8 +234,8 @@ class _LoginState extends State<Login> {
                                       );
                                       final data = SignInResponse.fromJson(
                                           json.decode(response.body));
+                                      ToastManager.showToast(data.message);
                                       if (data.error) {
-                                        Get.snackbar("Error", data.message);
                                       } else {
                                         _storage.write("token", data.token);
                                         Get.to(() => const Home());

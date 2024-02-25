@@ -61,6 +61,10 @@ dependencies:
   flutter_contacts: ^1.1.7+1
   dotted_border: ^2.1.0
   dotted_line: ^3.2.2
+  fluttertoast: ^8.2.4
+  mask_text_input_formatter: ^2.9.0
+  image_picker: ^1.0.7
+  cloudinary: ^1.2.0
 
 dev_dependencies:
   flutter_test:

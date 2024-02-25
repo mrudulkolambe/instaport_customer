@@ -90,7 +90,6 @@ class LocationService {
         endpoint =
             'https://maps.googleapis.com/maps/api/directions/json?origin=$srclat,$srclng&destination=${droplocations.last.latitude},${droplocations.last.longitude}&waypoints=optimize:true|$waypointsString&key=AIzaSyCQb159dbqJypdIO1a1o0v_mNgM5eFqVAo';
       }
-      print(endpoint);
       var response = await http.get(Uri.parse(endpoint));
       var data = jsonDecode(response.body);
       if (response.statusCode == 200) {

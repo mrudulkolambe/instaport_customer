@@ -73,18 +73,25 @@ class ConfirmController extends GetxController {
       content: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text("Amount: Rs.$newAmount"),
-          if (payment_method != "cod")
-            Text(
-              diff == 0
-                  ? 'Are you sure you want to update the order?'
-                  : diff < 0
+          Row(
+            children: [
+              Text(
+                "Updated Order Price: Rs.${newAmount.toPrecision(2)}",
+                style: GoogleFonts.poppins(),
+              ),
+            ],
+          ),
+          if (payment_method != "cod" && diff != 0)
+            Row(
+              children: [
+                Text(
+                  diff < 0
                       ? "Rs.${diff.abs().toPrecision(2)} will be added to your next order"
                       : "Rs.${diff.abs().toPrecision(2)} will be saved for your next order",
+                  style: GoogleFonts.poppins(),
+                ),
+              ],
             ),
-          if (payment_method == "cod")
-            Text(
-                "Rs.${diff.abs().toPrecision(2)} has been added to your amount"),
         ],
       ),
       textConfirm: 'Yes',
