@@ -35,6 +35,7 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
   double lat = 0.0;
   double lng = 0.0;
   bool loading = true;
+  bool placesLoading = true;
   final FocusNode _focusNode = FocusNode();
   @override
   void initState() {
@@ -64,28 +65,16 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
 
   void _onCameraIdle(double lat, double lng) async {
-    // if (widget.latitude == 0.0 &&
-    //     widget.longitude == 0.0 &&
-    //     widget.index == 0) {
-    //   var address = await LocationService().fetchAddress(LatLng(lat, lng));
-    //   _controller.text = address;
-    //   setState(() {
-    //     lat = lat;
-    //     lng = lng;
-    //     loading = false;
-    //   });
-    // } else if (widget.latitude == 0.0 &&
-    //     widget.longitude == 0.0 &&
-    //     widget.index == 1) {
-      var address = await LocationService().fetchAddress(LatLng(lat, lng));
-      _controller.text = address;
-      setState(() {
-        lat = lat;
-        lng = lng;
-        loading = false;
-      });
-    // }
     setState(() {
+      placesLoading = true;
+    });
+    var address = await LocationService().fetchAddress(LatLng(lat, lng));
+    _controller.text = address;
+    setState(() {
+      lat = lat;
+      lng = lng;
+      loading = false;
+      placesLoading = false;
       places = [];
     });
   }
@@ -310,7 +299,7 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                             ),
                             GestureDetector(
                               onTap: () {
-                                Get.to(
+                                placesLoading ? () : Get.to(
                                   () => LocationPicker(
                                     latitude: lat,
                                     longitude: lng,
@@ -324,9 +313,9 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                                   horizontal: 16,
                                   vertical: 10,
                                 ),
-                                decoration: const BoxDecoration(
-                                  color: accentColor,
-                                  borderRadius: BorderRadius.all(
+                                decoration: BoxDecoration(
+                                  color: placesLoading ? accentColor.withOpacity(0.7) : accentColor,
+                                  borderRadius: const BorderRadius.all(
                                     Radius.circular(
                                       5,
                                     ),

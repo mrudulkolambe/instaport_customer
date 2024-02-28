@@ -20,7 +20,7 @@ import 'package:instaport_customer/utils/validator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:cloudinary/cloudinary.dart';
-import 'package:flutter/foundation.dart';
+import 'package:instaport_customer/utils/image_modifier.dart';
 
 class EditProfile extends StatefulWidget {
   const EditProfile({super.key});
@@ -39,7 +39,6 @@ class _EditProfileState extends State<EditProfile> {
   final UserController userController = Get.put(UserController());
   final TextEditingController _fullnamecontroller = TextEditingController();
   final TextEditingController _phonecontroller = TextEditingController();
-  final TextEditingController _agecontroller = TextEditingController();
   bool loading = false;
   bool uploading = false;
   String image = "";
@@ -71,14 +70,12 @@ class _EditProfileState extends State<EditProfile> {
   );
 
   Future<void> uploadToCloudinary(File imageFile) async {
-    print(imageFile.path);
     final url =
         Uri.parse('https://api.cloudinary.com/v1_1/dwd2fznsk/image/upload');
     final request = http.MultipartRequest('POST', url)
       ..fields['upload_preset'] = 'pmoqxm8k'
       ..files.add(await http.MultipartFile.fromPath('file', imageFile.path));
     final response1 = await request.send();
-    print(response1.statusCode);
     if (response1.statusCode == 200) {
       final responseData = await response1.stream.toBytes();
       final responseString = String.fromCharCodes(responseData);
@@ -109,9 +106,12 @@ class _EditProfileState extends State<EditProfile> {
         File pickedImageFile = File(image.path);
         int sizeInBytes = await pickedImageFile.length();
         double sizeInMB = sizeInBytes / (1024 * 1024);
-        if (sizeInMB <= 1.0) {
+        if (sizeInMB <= 5.0) {
           uploadToCloudinary(pickedImageFile);
         } else {
+          File resizedImage =
+              await resizeImage(File(image.path), maxSize: 1 * 1024 * 1024);
+          uploadToCloudinary(resizedImage);
           ToastManager.showToast('Image size should be less than 1MB');
           setState(() {
             uploading = false;
@@ -175,7 +175,6 @@ class _EditProfileState extends State<EditProfile> {
       Uri.parse("$apiUrl/user/"),
       headers: {"Authorization": "Bearer $token"},
     );
-    print(response.body);
     var user = UserDataResponse.fromJson(jsonDecode(response.body)).user;
     userController.updateUser(user);
     _fullnamecontroller.text = user.fullname;

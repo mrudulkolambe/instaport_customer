@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:instaport_customer/components/appbar.dart';
 import 'package:instaport_customer/components/bottomnavigationbar.dart';
 import 'package:instaport_customer/constants/colors.dart';
+import 'package:instaport_customer/controllers/user.dart';
 import 'package:instaport_customer/screens/about.dart';
 import 'package:instaport_customer/screens/edit_profile.dart';
 import 'package:instaport_customer/screens/login.dart';
@@ -19,6 +20,7 @@ class Profile extends StatefulWidget {
 
 class _ProfileState extends State<Profile> {
   final _storage = GetStorage();
+  final UserController userController = Get.put(UserController());
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -38,6 +40,47 @@ class _ProfileState extends State<Profile> {
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
           child: Column(
             children: [
+              Row(
+                      children: [
+                        CircleAvatar(
+                          radius: 35,
+                          onBackgroundImageError: (exception, stackTrace) {},
+                          backgroundImage: NetworkImage(
+                            userController.user.image
+                          ),
+                          backgroundColor: accentColor,
+                        ),
+                        const SizedBox(
+                          width: 10,
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              userController.user.fullname,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(
+                              height: 2,
+                            ),
+                            Text(
+                              userController.user.mobileno,
+                              style: GoogleFonts.poppins(
+                                fontWeight: FontWeight.w500,
+                                color: Colors.black38,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ],
+                        )
+                      ],
+                    ),
+                    const SizedBox(
+                              height: 20,
+                            ),
               GestureDetector(
                 onTap: () => Get.to(() => const EditProfile()),
                 child: Container(

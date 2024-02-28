@@ -9,12 +9,11 @@ import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import 'package:instaport_customer/components/appbar.dart';
+import 'package:instaport_customer/components/address_details.dart';
 import 'package:instaport_customer/components/label.dart';
 import 'package:instaport_customer/models/price_model.dart';
 import 'package:instaport_customer/screens/edit_order.dart';
 import 'package:instaport_customer/screens/home.dart';
-import 'package:instaport_customer/screens/past_orders.dart';
 import 'package:instaport_customer/utils/timeformatter.dart';
 import 'package:instaport_customer/utils/toast_manager.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -40,6 +39,7 @@ class TrackOrder extends StatefulWidget {
 class _TrackOrderState extends State<TrackOrder> {
   final storage = GetStorage();
   Set<Marker> _markers = {};
+  BitmapDescriptor trackIcon = BitmapDescriptor.defaultMarker;
   Set<Polyline> _polylineSet = {};
   final AppController appController = Get.put(AppController());
   bool loading = false;
@@ -55,6 +55,7 @@ class _TrackOrderState extends State<TrackOrder> {
   Timer? _timer;
   final TextEditingController _reason = TextEditingController();
   PriceManipulation? price;
+  List<Column> droplocationslists = [];
 
   void handlePriceFetch() async {
     var response = await http.get(Uri.parse("$apiUrl/price/get"));
@@ -110,6 +111,13 @@ class _TrackOrderState extends State<TrackOrder> {
   void markersAndPolylines(Orders order) async {
     Set<Marker> funcmarkers = {};
     Set<Polyline> funcpolyline = {};
+    final directionData = await LocationService().fetchDirections(
+      order.pickup.latitude,
+      order.pickup.longitude,
+      order.drop.latitude,
+      order.drop.longitude,
+      order.droplocations,
+    );
 
     Marker pickupmarker = Marker(
       markerId: MarkerId(order.pickup.text),
@@ -125,6 +133,7 @@ class _TrackOrderState extends State<TrackOrder> {
         order.drop.longitude,
       ),
     );
+
     Set<Marker> defaultMarkerSet = {
       pickupmarker,
       dropmarker,
@@ -141,13 +150,6 @@ class _TrackOrderState extends State<TrackOrder> {
     }).toSet();
 
     funcmarkers = {...defaultMarkerSet, ...droplocationmarkers};
-    final directionData = await LocationService().fetchDirections(
-      order.pickup.latitude,
-      order.pickup.longitude,
-      order.drop.latitude,
-      order.drop.longitude,
-      order.droplocations,
-    );
     PolylinePoints pPoints = PolylinePoints();
 
     List<PointLatLng> decodePolylinePointsResult =
@@ -173,14 +175,16 @@ class _TrackOrderState extends State<TrackOrder> {
     _polylineSet.clear();
     funcpolyline.add(polyline);
 
-    setState(() {
-      _markers = funcmarkers;
-      _polylineSet = funcpolyline;
-    });
-    repositionGoogleMaps(
-      LatLng(order.pickup.latitude, order.pickup.longitude),
-      LatLng(order.drop.latitude, order.drop.longitude),
-    );
+    try {
+      setState(() {
+        _markers = funcmarkers;
+        _polylineSet = funcpolyline;
+      });
+      repositionGoogleMaps(
+        LatLng(order.pickup.latitude, order.pickup.longitude),
+        LatLng(order.drop.latitude, order.drop.longitude),
+      );
+    } catch (e) {}
   }
 
   void _makePhoneCall(String phoneNumber) async {
@@ -256,16 +260,36 @@ class _TrackOrderState extends State<TrackOrder> {
   Future<void> getOrderById() async {
     final token = await storage.read("token");
     if (token != null) {
-      // setState(() {
-      //   loading = true;
-      // });
       String url = '$apiUrl/order/customer_app/${widget.data.id}';
       final response = await http
           .get(Uri.parse(url), headers: {'Authorization': 'Bearer $token'});
       final data = OrderResponse.fromJson(json.decode(response.body));
       markersAndPolylines(data.order);
-      // if (data.order.rider != null) {
+      var items = List.from(data.order.droplocations).asMap().entries.map((e) {
+        return Column(
+          children: [
+            const SizedBox(
+              height: 10,
+            ),
+            const Divider(),
+            AddressDetailsScreen(
+              key: Key((e.key + 2).toString()),
+              address: e.value,
+              title: "Drop Point",
+              scheduled: data.order.delivery_type != "now",
+              paymentAddress: data.order.payment_address,
+              time: data.order.time_stamp,
+              orderStatus: data.order.orderStatus,
+              index: e.key + 2,
+              type: data.order.payment_method,
+              amount: data.order.amount,
+              status: data.order.status,
+            ),
+          ],
+        );
+      }).toList();
       setState(() {
+        droplocationslists = items;
         order_data = data.order;
       });
       try {
@@ -276,7 +300,6 @@ class _TrackOrderState extends State<TrackOrder> {
               .listen((DatabaseEvent event) {
             final data = event.snapshot.value;
             final dynamic snapshotValue = json.encode(data);
-            print(snapshotValue);
             if (snapshotValue != null) {
               final data = RiderLocation.fromJson(jsonDecode(snapshotValue));
               setState(() {
@@ -328,9 +351,8 @@ class _TrackOrderState extends State<TrackOrder> {
             {"modified": "cancel"},
           );
           ToastManager.showToast("Order cancelled");
-          Get.to(() => Home());
+          Get.to(() => const Home());
         } else {
-          print("Error: ${response.reasonPhrase}");
           ToastManager.showToast("Error: ${response.reasonPhrase}");
         }
       }
@@ -344,6 +366,7 @@ class _TrackOrderState extends State<TrackOrder> {
     super.initState();
     _initializeMap();
     getOrderById();
+    _customMarker();
     if (order_data.status != "cancelled") {
       _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
         getOrderByIdContinue();
@@ -353,6 +376,15 @@ class _TrackOrderState extends State<TrackOrder> {
 
   void _initializeMap() async {
     newgooglemapcontroller = await _mapControllerCompleter.future;
+  }
+
+  void _customMarker() async {
+    final track = await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(24, 24)),
+        'assets/map/map-pin-drop.png');
+    setState(() {
+      trackIcon = track;
+    });
   }
 
   @override
@@ -452,30 +484,26 @@ class _TrackOrderState extends State<TrackOrder> {
     } else {
       FocusScope.of(context).requestFocus(_reasonFocus);
       setState(() {
-        cancelOrderSheetHeight = MediaQuery.of(context).size.height - 100;
+        cancelOrderSheetHeight = MediaQuery.of(context).size.height - 30;
       });
     }
+  }
+
+  Future<BitmapDescriptor> _customIcon() async {
+    return await BitmapDescriptor.fromAssetImage(
+        const ImageConfiguration(size: Size(24, 24)), 'assets/my_icon.png');
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        toolbarHeight: 60,
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        title: CustomAppBar(
-          title: "Tracking #${widget.data.id.toString().substring(18)}",
-          back: () => Get.to(() => const PastOrders()),
-        ),
-      ),
       body: SafeArea(
         child: Column(
           children: <Widget>[
             Stack(
               children: [
                 SizedBox(
-                  height: MediaQuery.of(context).size.height - 100,
+                  height: MediaQuery.of(context).size.height - 40,
                   width: MediaQuery.of(context).size.width,
                   child: Stack(
                     children: [
@@ -486,12 +514,13 @@ class _TrackOrderState extends State<TrackOrder> {
                         polylines: _polylineSet,
                         markers: {
                           ..._markers,
-                          // if (order_data.status != "delivered")
-                          Marker(
-                            markerId: const MarkerId("Rider Location"),
-                            position: riderLocation,
-                            infoWindow: const InfoWindow(title: "Rider"),
-                          )
+                          if (order_data.status != "delivered")
+                            Marker(
+                              markerId: const MarkerId("Rider Location"),
+                              position: riderLocation,
+                              infoWindow: const InfoWindow(title: "Rider"),
+                              icon: trackIcon,
+                            ),
                         },
                         mapType: MapType.normal,
                         initialCameraPosition: CameraPosition(
@@ -580,19 +609,18 @@ class _TrackOrderState extends State<TrackOrder> {
                         setState(() {
                           sheetHeight -= details.primaryDelta!;
                           sheetHeight = sheetHeight.clamp(
-                            30.0,
-                            MediaQuery.of(context).size.height - 100,
+                            45.0,
+                            MediaQuery.of(context).size.height - 30,
                           );
                         });
                       },
                       onVerticalDragEnd: (details) {
                         if (sheetHeight < 200.0) {
-                          sheetHeight = 30.0;
+                          sheetHeight = 45.0;
                         } else if (sheetHeight > 200.0 && sheetHeight < 350) {
                           sheetHeight = 350.0;
                         } else if (sheetHeight > 350) {
-                          sheetHeight =
-                              MediaQuery.of(context).size.height - 100;
+                          sheetHeight = MediaQuery.of(context).size.height - 45;
                         }
                       },
                       child: Material(
@@ -619,13 +647,16 @@ class _TrackOrderState extends State<TrackOrder> {
                               SizedBox(
                                 height: sheetHeight - 30,
                                 child: SingleChildScrollView(
-                                  padding: EdgeInsets.symmetric(horizontal: 25),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 25),
                                   child: Column(
                                     children: [
                                       const SizedBox(
                                         height: 10,
                                       ),
                                       Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text(
                                             "Rs. ${(order_data.amount).toPrecision(2).toString()}",
@@ -633,6 +664,10 @@ class _TrackOrderState extends State<TrackOrder> {
                                               fontSize: 28,
                                               fontWeight: FontWeight.bold,
                                             ),
+                                          ),
+                                          Text(
+                                            "#${order_data.id.substring(18)}",
+                                            style: GoogleFonts.poppins(),
                                           ),
                                         ],
                                       ),
@@ -682,26 +717,6 @@ class _TrackOrderState extends State<TrackOrder> {
                                       Row(
                                         children: [
                                           Text(
-                                            "Order ID: ",
-                                            style: GoogleFonts.poppins(
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                          const SizedBox(
-                                            width: 2,
-                                          ),
-                                          Text(
-                                            "#${order_data.id.substring(18)}",
-                                            style: GoogleFonts.poppins(),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(
-                                        height: 6,
-                                      ),
-                                      Row(
-                                        children: [
-                                          Text(
                                             "Payment: ",
                                             style: GoogleFonts.poppins(
                                               fontWeight: FontWeight.bold,
@@ -737,10 +752,9 @@ class _TrackOrderState extends State<TrackOrder> {
                                           ),
                                         ],
                                       ),
-                                      if (!loading && order_data.rider != null)
-                                        const SizedBox(
-                                          height: 10,
-                                        ),
+                                      const SizedBox(
+                                        height: 20,
+                                      ),
                                       if (!loading && order_data.rider != null)
                                         Text(
                                           order_data.orderStatus.isEmpty
@@ -850,13 +864,33 @@ class _TrackOrderState extends State<TrackOrder> {
                                                     child: order_data.rider ==
                                                             null
                                                         ? const CircularProgressIndicator()
-                                                        : Image.network(
-                                                            order_data
-                                                                .rider!.image,
-                                                            height: 50,
-                                                            width: 50,
-                                                            fit: BoxFit.cover,
-                                                          ),
+                                                        : order_data.rider!
+                                                                    .image ==
+                                                                ""
+                                                            ? Container(
+                                                                color: accentColor
+                                                                    .withOpacity(
+                                                                        0.5),
+                                                                height: 50,
+                                                                width: 50,
+                                                              )
+                                                            : Image.network(
+                                                                order_data
+                                                                    .rider!
+                                                                    .image,
+                                                                height: 50,
+                                                                width: 50,
+                                                                errorBuilder:
+                                                                    (context,
+                                                                        error,
+                                                                        stackTrace) {
+                                                                  print(error);
+                                                                  return const Text(
+                                                                      "Error");
+                                                                },
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                              ),
                                                   ),
                                                   const SizedBox(
                                                     width: 10,
@@ -917,9 +951,49 @@ class _TrackOrderState extends State<TrackOrder> {
                                             )
                                         ],
                                       ),
+                                      const Divider(),
                                       const SizedBox(
                                         height: 20,
                                       ),
+                                      AddressDetailsScreen(
+                                        address: order_data.pickup,
+                                        title: "Pickup",
+                                        scheduled:
+                                            order_data.delivery_type != "now",
+                                        paymentAddress:
+                                            order_data.payment_address,
+                                        time: order_data.time_stamp,
+                                        orderStatus: order_data.orderStatus,
+                                        index: 0,
+                                        amount: order_data.amount,
+                                        type: order_data.payment_method,
+                                        status: order_data.status,
+                                      ),
+                                      const SizedBox(
+                                        height: 15,
+                                      ),
+                                      const Divider(),
+                                      AddressDetailsScreen(
+                                        address: order_data.drop,
+                                        title: "Drop",
+                                        scheduled:
+                                            order_data.delivery_type != "now",
+                                        paymentAddress:
+                                            order_data.payment_address,
+                                        time: order_data.time_stamp,
+                                        orderStatus: order_data.orderStatus,
+                                        index: 1,
+                                        type: order_data.payment_method,
+                                        amount: order_data.amount,
+                                        status: order_data.status,
+                                      ),
+                                      ...droplocationslists.map((Column item) {
+                                        return item;
+                                      }).toList(),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
+                                      const Divider(),
                                       if (order_data.orderStatus.isEmpty &&
                                           order_data.rider != null)
                                         Text(
@@ -935,6 +1009,9 @@ class _TrackOrderState extends State<TrackOrder> {
                                             fontWeight: FontWeight.w500,
                                           ),
                                         ),
+                                      const SizedBox(
+                                        height: 10,
+                                      ),
                                       if (order_data.orderStatus.isNotEmpty)
                                         ...order_data.orderStatus
                                             .asMap()
@@ -1087,6 +1164,9 @@ class _TrackOrderState extends State<TrackOrder> {
                                               ),
                                             )
                                             .toList(),
+                                      const SizedBox(
+                                        height: 30,
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -1107,11 +1187,11 @@ class _TrackOrderState extends State<TrackOrder> {
                       setState(() {
                         cancelOrderSheetHeight -= details.primaryDelta!;
                         cancelOrderSheetHeight = cancelOrderSheetHeight.clamp(
-                            0.0, MediaQuery.of(context).size.height - 100);
+                            40, MediaQuery.of(context).size.height - 100);
                       });
                     },
                     onVerticalDragEnd: (details) {
-                      cancelOrderSheetHeight = 0.0;
+                      cancelOrderSheetHeight = 40.0;
                     },
                     child: Material(
                       elevation: 8.0,
