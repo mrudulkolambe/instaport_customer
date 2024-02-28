@@ -38,240 +38,245 @@ class _ProfileState extends State<Profile> {
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
-          child: Column(
-            children: [
-              Row(
-                      children: [
-                        CircleAvatar(
-                          radius: 35,
-                          onBackgroundImageError: (exception, stackTrace) {},
-                          backgroundImage: NetworkImage(
-                            userController.user.image
-                          ),
-                          backgroundColor: accentColor,
-                        ),
-                        const SizedBox(
-                          width: 10,
-                        ),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+          child: GetBuilder<UserController>(
+            init: UserController(),
+            builder: (controller) {
+              return Column(
+                children: [
+                  Row(
                           children: [
-                            Text(
-                              userController.user.fullname,
-                              style: GoogleFonts.poppins(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
+                            CircleAvatar(
+                              radius: 35,
+                              onBackgroundImageError: (exception, stackTrace) {},
+                              backgroundImage: NetworkImage(
+                                controller.user.image
                               ),
+                              backgroundColor: accentColor,
                             ),
                             const SizedBox(
-                              height: 2,
+                              width: 10,
                             ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  controller.user.fullname,
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const SizedBox(
+                                  height: 2,
+                                ),
+                                Text(
+                                  controller.user.mobileno,
+                                  style: GoogleFonts.poppins(
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black38,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            )
+                          ],
+                        ),
+                        const SizedBox(
+                                  height: 20,
+                                ),
+                  GestureDetector(
+                    onTap: () => Get.to(() => const EditProfile()),
+                    child: Container(
+                      width: MediaQuery.of(context).size.width - 50,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          width: 2,
+                          color: accentColor,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 15.0,
+                          horizontal: 25,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
                             Text(
-                              userController.user.mobileno,
+                              "Edit Profile",
                               style: GoogleFonts.poppins(
+                                fontSize: 14,
                                 fontWeight: FontWeight.w500,
-                                color: Colors.black38,
-                                fontSize: 12,
                               ),
                             ),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 15,
+                            )
                           ],
-                        )
-                      ],
+                        ),
+                      ),
                     ),
-                    const SizedBox(
-                              height: 20,
+                  ),
+                  const SizedBox(
+                    height: 15,
+                  ),
+                  // TODO: Change City
+                  // Container(
+                  //   width: MediaQuery.of(context).size.width - 50,
+                  //   decoration: BoxDecoration(
+                  //     border: Border.all(
+                  //       width: 2,
+                  //       color: accentColor,
+                  //     ),
+                  //     borderRadius: BorderRadius.circular(10),
+                  //   ),
+                  //   child: Padding(
+                  //     padding: const EdgeInsets.symmetric(
+                  //       vertical: 15.0,
+                  //       horizontal: 25,
+                  //     ),
+                  //     child: Row(
+                  //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  //       children: [
+                  //         Text(
+                  //           "Change city",
+                  //           style: GoogleFonts.poppins(
+                  //             fontSize: 14,
+                  //             fontWeight: FontWeight.w500,
+                  //           ),
+                  //         ),
+                  //         const Icon(
+                  //           Icons.arrow_forward_ios_rounded,
+                  //           size: 15,
+                  //         )
+                  //       ],
+                  //     ),
+                  //   ),
+                  // ),
+                  // const SizedBox(
+                  //   height: 15,
+                  // ),
+                  GestureDetector(
+                    onTap: () => Get.to(() => const AboutUs()),
+                    child: Container(
+                      width: MediaQuery.of(context).size.width - 50,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          width: 2,
+                          color: accentColor,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 15.0,
+                          horizontal: 25,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "About us",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
-              GestureDetector(
-                onTap: () => Get.to(() => const EditProfile()),
-                child: Container(
-                  width: MediaQuery.of(context).size.width - 50,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 2,
-                      color: accentColor,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 15.0,
-                      horizontal: 25,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Edit Profile",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 15,
+                            )
+                          ],
                         ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 15,
-                        )
-                      ],
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              // TODO: Change City
-              // Container(
-              //   width: MediaQuery.of(context).size.width - 50,
-              //   decoration: BoxDecoration(
-              //     border: Border.all(
-              //       width: 2,
-              //       color: accentColor,
-              //     ),
-              //     borderRadius: BorderRadius.circular(10),
-              //   ),
-              //   child: Padding(
-              //     padding: const EdgeInsets.symmetric(
-              //       vertical: 15.0,
-              //       horizontal: 25,
-              //     ),
-              //     child: Row(
-              //       mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              //       children: [
-              //         Text(
-              //           "Change city",
-              //           style: GoogleFonts.poppins(
-              //             fontSize: 14,
-              //             fontWeight: FontWeight.w500,
-              //           ),
-              //         ),
-              //         const Icon(
-              //           Icons.arrow_forward_ios_rounded,
-              //           size: 15,
-              //         )
-              //       ],
-              //     ),
-              //   ),
-              // ),
-              // const SizedBox(
-              //   height: 15,
-              // ),
-              GestureDetector(
-                onTap: () => Get.to(() => const AboutUs()),
-                child: Container(
-                  width: MediaQuery.of(context).size.width - 50,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 2,
-                      color: accentColor,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
+                  const SizedBox(
+                    height: 15,
                   ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 15.0,
-                      horizontal: 25,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "About us",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                  GestureDetector(
+                    onTap: () => Get.to(() => const Wallet()),
+                    child: Container(
+                      width: MediaQuery.of(context).size.width - 50,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          width: 2,
+                          color: accentColor,
                         ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 15,
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              GestureDetector(
-                onTap: () => Get.to(() => const Wallet()),
-                child: Container(
-                  width: MediaQuery.of(context).size.width - 50,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 2,
-                      color: accentColor,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 15.0,
-                      horizontal: 25,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Wallet",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 15.0,
+                          horizontal: 25,
                         ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 15,
-                        )
-                      ],
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Wallet",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 15,
+                            )
+                          ],
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              const SizedBox(
-                height: 15,
-              ),
-              GestureDetector(
-                onTap: () => {
-                  _storage.remove("token"),
-                  Get.to(
-                    () => const Login(),
+                  const SizedBox(
+                    height: 15,
+                  ),
+                  GestureDetector(
+                    onTap: () => {
+                      _storage.remove("token"),
+                      Get.to(
+                        () => const Login(),
+                      )
+                    },
+                    child: Container(
+                      width: MediaQuery.of(context).size.width - 50,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          width: 2,
+                          color: accentColor,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          vertical: 15.0,
+                          horizontal: 25,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              "Logout",
+                              style: GoogleFonts.poppins(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            const Icon(
+                              Icons.arrow_forward_ios_rounded,
+                              size: 15,
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
                   )
-                },
-                child: Container(
-                  width: MediaQuery.of(context).size.width - 50,
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      width: 2,
-                      color: accentColor,
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: 15.0,
-                      horizontal: 25,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          "Logout",
-                          style: GoogleFonts.poppins(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const Icon(
-                          Icons.arrow_forward_ios_rounded,
-                          size: 15,
-                        )
-                      ],
-                    ),
-                  ),
-                ),
-              )
-            ],
+                ],
+              );
+            }
           ),
         ),
       ),

@@ -75,20 +75,26 @@ class ConfirmController extends GetxController {
         children: [
           Row(
             children: [
-              Text(
-                "Updated Order Price: Rs.${newAmount.toPrecision(2)}",
-                style: GoogleFonts.poppins(),
+              Expanded(
+                child: Text(
+                  "Updated Order Price: Rs.${newAmount.toPrecision(2)}",
+                  style: GoogleFonts.poppins(),
+                  softWrap: true,
+                ),
               ),
             ],
           ),
           if (payment_method != "cod" && diff != 0)
             Row(
               children: [
-                Text(
-                  diff < 0
-                      ? "Rs.${diff.abs().toPrecision(2)} will be added to your next order"
-                      : "Rs.${diff.abs().toPrecision(2)} will be saved for your next order",
-                  style: GoogleFonts.poppins(),
+                Expanded(
+                  child: Text(
+                    diff < 0
+                        ? "Rs.${diff.abs().toPrecision(2)} will be added to your next order"
+                        : "Rs.${diff.abs().toPrecision(2)} will be saved for your next order",
+                    style: GoogleFonts.poppins(),
+                    softWrap: true,
+                  ),
                 ),
               ],
             ),
