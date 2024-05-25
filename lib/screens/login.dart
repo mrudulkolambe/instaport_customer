@@ -1,17 +1,19 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:get/get.dart';
 import 'package:get_storage/get_storage.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:instaport_customer/components/label.dart';
 import 'package:instaport_customer/constants/colors.dart';
+import 'package:instaport_customer/firebase_messaging/firebase_messaging.dart';
 import 'package:instaport_customer/main.dart';
 import 'package:instaport_customer/models/user_model.dart';
 import 'package:instaport_customer/screens/create_account.dart';
 import 'package:http/http.dart' as http;
-import 'package:instaport_customer/screens/home.dart';
+import 'package:instaport_customer/screens/forget_password.dart';
 import 'package:instaport_customer/utils/mask_fomatter.dart';
 import 'package:instaport_customer/utils/toast_manager.dart';
 import 'package:instaport_customer/utils/validator.dart';
@@ -198,12 +200,15 @@ class _LoginState extends State<Login> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Text(
-                            "Forget Password?",
-                            style: GoogleFonts.poppins(
-                                color: Colors.black,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500),
+                          GestureDetector(
+                            onTap: () => Get.to(() => const ForgetPassword()),
+                            child: Text(
+                              "Forget Password?",
+                              style: GoogleFonts.poppins(
+                                  color: Colors.black,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500),
+                            ),
                           ),
                         ],
                       ),
@@ -220,6 +225,10 @@ class _LoginState extends State<Login> {
                                     setState(() {
                                       loading = true;
                                     });
+                                    String? fcmtoken =
+                                        await FirebaseMessagingAPI()
+                                            .initNotifications();
+                                    print(fcmtoken);
                                     const String url = '$apiUrl/user/signin';
                                     try {
                                       final response = await http.post(
@@ -230,6 +239,7 @@ class _LoginState extends State<Login> {
                                         body: jsonEncode({
                                           'mobileno': _phoneController.text,
                                           'password': _passwordController.text,
+                                          'fcmtoken': fcmtoken ?? ""
                                         }),
                                       );
                                       final data = SignInResponse.fromJson(
@@ -238,7 +248,7 @@ class _LoginState extends State<Login> {
                                       if (data.error) {
                                       } else {
                                         _storage.write("token", data.token);
-                                        Get.to(() => const Home());
+                                        Get.to(() => const SplashScreen());
                                       }
                                       // ignore: empty_catches
                                     } catch (error) {}

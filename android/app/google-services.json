@@ -1,14 +1,13 @@
 {
   "project_info": {
-    "project_number": "62094269732",
-    "firebase_url": "https://instaport-application-default-rtdb.firebaseio.com",
-    "project_id": "instaport-application",
-    "storage_bucket": "instaport-application.appspot.com"
+    "project_number": "209395485323",
+    "project_id": "instaport-main",
+    "storage_bucket": "instaport-main.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:62094269732:android:956fdd2303f2c5c938a7b1",
+        "mobilesdk_app_id": "1:209395485323:android:880929315dbe7b3cf1a28e",
         "android_client_info": {
           "package_name": "com.instaport.customer"
         }
@@ -16,7 +15,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAp6a0NJIJFdO6e8BXS-eypMnC0XpDMaCE"
+          "current_key": "AIzaSyAcyS-03eWA8hCJ6ZMBm-Q_jbW7ymVKrR0"
         }
       ],
       "services": {
@@ -27,15 +26,15 @@
     },
     {
       "client_info": {
-        "mobilesdk_app_id": "1:62094269732:android:fa4b26a3e6f0a54a38a7b1",
+        "mobilesdk_app_id": "1:209395485323:android:89e8a330b7d3ede4f1a28e",
         "android_client_info": {
-          "package_name": "com.instaport.rider"
+          "package_name": "com.instaport.customer"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAp6a0NJIJFdO6e8BXS-eypMnC0XpDMaCE"
+          "current_key": "AIzaSyAcyS-03eWA8hCJ6ZMBm-Q_jbW7ymVKrR0"
         }
       ],
       "services": {

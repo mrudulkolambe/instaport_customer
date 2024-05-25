@@ -16,6 +16,7 @@ import 'package:instaport_customer/models/user_model.dart';
 import 'package:instaport_customer/screens/home.dart';
 import 'package:instaport_customer/screens/login.dart';
 import 'package:get_storage/get_storage.dart';
+import 'package:instaport_customer/screens/verification.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_core/firebase_core.dart';
@@ -58,25 +59,6 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   final AppController appController = Get.put(AppController());
   final UserController userController = Get.put(UserController());
-  // void getPermissions() async {
-  //   if (await Permission.location.serviceStatus.isEnabled) {
-  //   } else {
-
-  //   }
-  //   var status = await Permission.location.status;
-  //   if (status.isGranted) {
-  //     return;
-  //   } else if (status.isDenied) {
-  //     openAppSettings();
-  //     // Map<Permission, PermissionStatus> status = await [
-  //     await [
-  //       Permission.location,
-  //     ].request();
-  //     if (await Permission.location.isPermanentlyDenied) {
-  //       openAppSettings();
-  //     }
-  //   }
-  // }
 
   void getPermissions() async {
     var permissionStatus = await Permission.location.request();
@@ -120,6 +102,8 @@ class _SplashScreenState extends State<SplashScreen> {
   Future<void> _isAuthed() async {
     final token = await _storage.read("token");
     getPermissions();
+    print("token");
+    print(token);
     if (token.toString() == "" || token == null) {
       Get.to(() => const Login());
     } else {
@@ -127,7 +111,11 @@ class _SplashScreenState extends State<SplashScreen> {
           headers: {'Authorization': 'Bearer $token'});
       final userData = UserDataResponse.fromJson(jsonDecode(data.body));
       userController.updateUser(userData.user);
+      if(userData.user.verified){
       Get.to(() => const Home());
+      }else{
+      Get.to(() => const Verification());
+      }
     }
   }
 

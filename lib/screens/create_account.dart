@@ -292,7 +292,11 @@ class _CreateAccountState extends State<CreateAccount> {
                                         final data = SignInResponse.fromJson(
                                             json.decode(response.body));
                                         ToastManager.showToast(data.message);
+                                        setState(() {
+                                          loading = false;
+                                        });
                                         if (data.error) {
+                                          print(data.message);
                                         } else {
                                           Get.to(() => const Login());
                                         }

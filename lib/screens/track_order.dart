@@ -66,6 +66,7 @@ class _TrackOrderState extends State<TrackOrder> {
   }
 
   Orders order_data = Orders(
+    distances: [],
     pickup: Address(
       text: "",
       latitude: 0.0,
@@ -264,7 +265,6 @@ class _TrackOrderState extends State<TrackOrder> {
       final response = await http
           .get(Uri.parse(url), headers: {'Authorization': 'Bearer $token'});
       final data = OrderResponse.fromJson(json.decode(response.body));
-      markersAndPolylines(data.order);
       var items = List.from(data.order.droplocations).asMap().entries.map((e) {
         return Column(
           children: [
@@ -288,6 +288,7 @@ class _TrackOrderState extends State<TrackOrder> {
           ],
         );
       }).toList();
+        markersAndPolylines(data.order);
       setState(() {
         droplocationslists = items;
         order_data = data.order;
@@ -310,7 +311,9 @@ class _TrackOrderState extends State<TrackOrder> {
         } else {
           // ToastManager.showToast('Error');
         }
-      } catch (e) {}
+      } catch (e) {
+        print(e);
+      }
     } else {}
   }
 
@@ -366,7 +369,7 @@ class _TrackOrderState extends State<TrackOrder> {
     super.initState();
     _initializeMap();
     getOrderById();
-    _customMarker();
+    // _customMarker();
     if (order_data.status != "cancelled") {
       _timer = Timer.periodic(const Duration(seconds: 5), (timer) {
         getOrderByIdContinue();
@@ -758,7 +761,7 @@ class _TrackOrderState extends State<TrackOrder> {
                                       if (!loading && order_data.rider != null)
                                         Text(
                                           order_data.orderStatus.isEmpty
-                                              ? "Waiting for Rider to confirm"
+                                              ? "Rider is on the way for pickup"
                                               : order_data.orderStatus.length ==
                                                       1
                                                   ? "Rider is on the way for pickup"
@@ -997,7 +1000,7 @@ class _TrackOrderState extends State<TrackOrder> {
                                       if (order_data.orderStatus.isEmpty &&
                                           order_data.rider != null)
                                         Text(
-                                          "Waiting for rider to confirm",
+                                          "On Rider is on the way for pickup",
                                           style: GoogleFonts.poppins(
                                             fontWeight: FontWeight.w500,
                                           ),

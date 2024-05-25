@@ -74,7 +74,7 @@ class PastOrderCard extends StatelessWidget {
                           height: 4,
                         ),
                         Text(
-                          capitalize(text: data.status),
+                          capitalize(text: data.status == "processing" ? "assigned" : data.status),
                           style: GoogleFonts.poppins(
                             color: Colors.black,
                             fontSize: 12,

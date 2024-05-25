@@ -9,6 +9,7 @@ class OrderController extends GetxController {
   var pastOrders = <Orders>[];
 
   var initialorder = Orders(
+    distances: [],
     pickup: addressController.pickup,
     drop: addressController.drop,
     id: "",
@@ -30,6 +31,7 @@ class OrderController extends GetxController {
   );
 
   var currentorder = Orders(
+    distances: [],
     pickup: addressController.pickup,
     drop: addressController.drop,
     id: "",

@@ -20,6 +20,7 @@ import 'package:instaport_customer/models/order_model.dart';
 import 'package:instaport_customer/models/price_model.dart';
 import 'package:instaport_customer/models/user_model.dart';
 import 'package:instaport_customer/screens/new_order.dart';
+import 'package:instaport_customer/screens/order_payment/billdesk.dart';
 import 'package:instaport_customer/services/location_service.dart';
 import 'package:instaport_customer/services/uppercase_textfield_formatter.dart';
 import 'package:http/http.dart' as http;
@@ -48,6 +49,7 @@ class _PaymentFormState extends State<PaymentForm> {
   double discount = 0.0;
   Address? codAddress;
   User? customer;
+  List<double> distances = [];
 
   void handlePreFetch(double srclat, double srclng, double destlat,
       double destlng, List<Address> droplocations) async {
@@ -75,6 +77,7 @@ class _PaymentFormState extends State<PaymentForm> {
       totalDistance = (distanceMain.rows[0].elements[0].distance.value / 1000);
       totalAmount = (distanceMain.rows[0].elements[0].distance.value / 1000) *
           data.priceManipulation.perKilometerCharge;
+      distances.add(distanceMain.rows[0].elements[0].distance.value / 1000);
       if (droplocations.isNotEmpty) {
         for (int i = 0; i < droplocations.length; i++) {
           double srcLat, srcLng, destLat, destLng;
@@ -91,6 +94,7 @@ class _PaymentFormState extends State<PaymentForm> {
           }
           var locationData = await LocationService()
               .fetchDistance(srcLat, srcLng, destLat, destLng);
+          distances.add(locationData.rows[0].elements[0].distance.value / 1000);
           totalDistance +=
               locationData.rows[0].elements[0].distance.value / 1000;
           totalAmount +=
@@ -128,6 +132,7 @@ class _PaymentFormState extends State<PaymentForm> {
                             data.priceManipulation.baseOrderCharges;
         amount = finalAmount;
       }
+      print(distances);
       fetchLoading = false;
     });
   }
@@ -192,8 +197,6 @@ class _PaymentFormState extends State<PaymentForm> {
     };
     int timestamp = DateTime.now().millisecondsSinceEpoch;
     if (paymentindex == 1) {
-      // TODO: WALLET
-      // print(orderController.currentorder.package);
       final token = await _storage.read("token");
       var headers = {
         'Authorization': 'Bearer $token',
@@ -207,6 +210,7 @@ class _PaymentFormState extends State<PaymentForm> {
         "delivery_type": orderController.currentorder.delivery_type,
         "parcel_weight": orderController.currentorder.parcel_weight,
         "phone_number": orderController.currentorder.phone_number,
+        "distances": distances,
         "vehicle": orderController.currentorder.vehicle,
         "status": "new",
         "payment_method": "wallet",
@@ -249,6 +253,7 @@ class _PaymentFormState extends State<PaymentForm> {
           "parcel_weight": orderController.currentorder.parcel_weight,
           "phone_number": orderController.currentorder.phone_number,
           "vehicle": orderController.currentorder.vehicle,
+          "distances": distances,
           "status": "new",
           "payment_method": "cod",
           "package": orderController.currentorder.package,
@@ -279,10 +284,45 @@ class _PaymentFormState extends State<PaymentForm> {
       }
     } else if (paymentindex == 0) {
       // TODO: ONLINE
-      print("Online payment");
-      // setState(() {
-      //   showpg = true;
-      // });
+
+      var request = http.Request('POST', Uri.parse('$apiUrl/order/create'));
+      request.body = json.encode({
+        "pickup": orderController.currentorder.pickup.toJson(),
+        "drop": orderController.currentorder.drop.toJson(),
+        "delivery_type": orderController.currentorder.delivery_type,
+        "parcel_weight": orderController.currentorder.parcel_weight,
+        "phone_number": orderController.currentorder.phone_number,
+        "vehicle": orderController.currentorder.vehicle,
+        "distances": distances,
+        "status": "unpaid",
+        "payment_method": "online",
+        "package": orderController.currentorder.package,
+        "parcel_value": orderController.currentorder.parcel_value,
+        "amount": amount,
+        "payment_address": codAddress,
+        "commission": commission,
+        'droplocations': addressController.droplocations,
+        'time_stamp': timestamp,
+        'timer': 0,
+      });
+      request.headers.addAll(headers);
+      http.StreamedResponse response = await request.send();
+      if (response.statusCode == 200) {
+        var data = jsonDecode(await response.stream.bytesToString());
+        var orderData = OrderResponse.fromJson(data);
+        if (orderData.error == false) {
+          DatabaseReference ref =
+              FirebaseDatabase.instance.ref("orders/${orderData.order.id}");
+          await ref.set({"order": data["order"], "modified": ""});
+          // Get.dialog(const OrderSuccessDialog(), barrierDismissible: false);
+          // orderController.resetFields();
+          // addressController.resetfields();
+          print("https://instaport-transactions.vercel.app/order.html?token=$token&order=${orderData.order.id}&amount=${orderData.order.amount}");
+          Get.to(() => BillDeskPayment(url: "https://instaport-transactions.vercel.app/order.html?token=$token&order=${orderData.order.id}&amount=${orderData.order.amount}", order: orderData.order,));
+        }
+      } else {
+        print(response.reasonPhrase);
+      }
     }
   }
 
@@ -387,7 +427,7 @@ class _PaymentFormState extends State<PaymentForm> {
                                                         .spaceEvenly,
                                                 children: <Widget>[
                                                   Text(
-                                                    "Online (Pending)",
+                                                    "Online",
                                                     style: GoogleFonts.poppins(
                                                       color: Colors.black,
                                                       fontSize: 16,

@@ -43,8 +43,8 @@ class LocationData {
   
   factory LocationData.fromJson(Map<String, dynamic> json) {
     return LocationData(
-      latitude: json['lat'] as double,
-      longitude: json['lng'] as double,
+      latitude: json['lat'] + 0.0 as double,
+      longitude: json['lng']+ 0.0 as double,
     );
   }
 }

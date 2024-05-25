@@ -1,7 +1,14 @@
+// ignore_for_file: curly_braces_in_flow_control_structures
+
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:instaport_customer/components/label.dart';
 import 'package:instaport_customer/constants/colors.dart';
 import 'package:instaport_customer/controllers/address.dart';
 import 'package:instaport_customer/controllers/app.dart';
@@ -36,11 +43,13 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
   double lng = 0.0;
   bool loading = true;
   bool placesLoading = true;
+  bool bySearch = false;
   final FocusNode _focusNode = FocusNode();
+  Timer? _debounce;
   @override
   void initState() {
     super.initState();
-    // _googleMapController.animateCamera(cameraUpdate)
+    // _getCurrentLocation();
   }
 
   // @override
@@ -64,15 +73,16 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
 
   Map<MarkerId, Marker> markers = <MarkerId, Marker>{};
 
-  void _onCameraIdle(double lat, double lng) async {
+  void _onCameraIdle(double fetchLat, double fetchLng) async {
     setState(() {
       placesLoading = true;
     });
-    var address = await LocationService().fetchAddress(LatLng(lat, lng));
+    var address =
+        await LocationService().fetchAddress(LatLng(fetchLat, fetchLat));
     _controller.text = address;
     setState(() {
-      lat = lat;
-      lng = lng;
+      lat = fetchLat;
+      lng = fetchLng;
       loading = false;
       placesLoading = false;
       places = [];
@@ -80,10 +90,16 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
   }
 
   @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return WillPopScope(
       onWillPop: () async {
-        return !loading;
+        return true;
       },
       child: GetBuilder<AppController>(
           init: AppController(),
@@ -93,16 +109,28 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                 child: Stack(
                   children: [
                     Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Expanded(
+                        SizedBox(
+                          height: MediaQuery.of(context).size.height - 80,
                           child: GoogleMap(
-                            zoomControlsEnabled: false,
+                            liteModeEnabled: true,
+                            zoomControlsEnabled: true,
                             markers: Set<Marker>.of(markers.values),
+                            onCameraIdle: () {
+                              // TODO: logic written for finding location or place details using latitude and longitude while draging the map.
+                              // if (!bySearch) {
+                              //   Future.delayed(const Duration(seconds: 1));
+                              //   _onCameraIdle(
+                              //     lat,
+                              //     lng,
+                              //   );
+                              //   setState(() {
+                              //     bySearch = false;
+                              //   });
+                              // }
+                            },
                             onCameraMove: (position) {
-                              _onCameraIdle(
-                                position.target.latitude,
-                                position.target.longitude,
-                              );
                               setState(() {
                                 lat = position.target.latitude;
                                 lng = position.target.longitude;
@@ -141,6 +169,17 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                                   );
                                 }
                               });
+                              if (widget.text == "" ||
+                                  widget.latitude == 0.0 ||
+                                  widget.longitude == 0.0) {
+                                Future.delayed(const Duration(seconds: 1));
+                                _onCameraIdle(
+                                  appcrl.currentposition.value.target.latitude,
+                                  appcrl.currentposition.value.target.longitude,
+                                );
+                              } else {
+                                _controller.text = widget.text;
+                              }
                             },
                             initialCameraPosition: appcrl.currentposition.value,
                           ),
@@ -154,15 +193,21 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                       color: Colors.red[600],
                     )),
                     Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
                       children: [
                         TextFormField(
                           focusNode: _focusNode,
                           controller: _controller,
                           onChanged: (String value) async {
-                            final data = await LocationService()
-                                .fetchPlaces(_controller.text);
-                            setState(() {
-                              places = data;
+                            if (_debounce?.isActive ?? false)
+                              _debounce!.cancel();
+                            _debounce = Timer(const Duration(milliseconds: 500),
+                                () async {
+                              final data = await LocationService()
+                                  .fetchPlaces(_controller.text);
+                              setState(() {
+                                places = data;
+                              });
                             });
                           },
                           style: GoogleFonts.poppins(
@@ -260,6 +305,9 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                                             _focusNode.unfocus();
                                           }
                                           setState(() {
+                                            lat = data.latitude;
+                                            lng = data.longitude;
+                                            bySearch = true;
                                             places = [];
                                           });
                                         },
@@ -299,14 +347,16 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                             ),
                             GestureDetector(
                               onTap: () {
-                                placesLoading ? () : Get.to(
-                                  () => LocationPicker(
-                                    latitude: lat,
-                                    longitude: lng,
-                                    text: _controller.text,
-                                    index: widget.index,
-                                  ),
-                                );
+                                placesLoading && _controller.text.isNotEmpty
+                                    ? ()
+                                    : Get.to(
+                                        () => LocationPicker(
+                                          latitude: lat,
+                                          longitude: lng,
+                                          text: _controller.text,
+                                          index: widget.index,
+                                        ),
+                                      );
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(
@@ -314,7 +364,9 @@ class _PlacesAutoCompleteState extends State<PlacesAutoComplete> {
                                   vertical: 10,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: placesLoading ? accentColor.withOpacity(0.7) : accentColor,
+                                  color: placesLoading
+                                      ? accentColor.withOpacity(0.7)
+                                      : accentColor,
                                   borderRadius: const BorderRadius.all(
                                     Radius.circular(
                                       5,

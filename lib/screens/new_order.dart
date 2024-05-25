@@ -3,6 +3,7 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
@@ -10,7 +11,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:instaport_customer/components/address_container.dart';
 import 'package:instaport_customer/components/appbar.dart';
 import 'package:instaport_customer/components/bottomnavigationbar.dart';
+import 'package:instaport_customer/components/contactpicker.dart';
 import 'package:instaport_customer/components/getsnackbar.dart';
+import 'package:instaport_customer/components/label.dart';
 import 'package:instaport_customer/constants/colors.dart';
 import 'package:instaport_customer/controllers/address.dart';
 import 'package:instaport_customer/controllers/order.dart';
@@ -18,9 +21,13 @@ import 'package:instaport_customer/main.dart';
 import 'package:instaport_customer/models/address_model.dart';
 import 'package:instaport_customer/models/price_model.dart';
 import 'package:instaport_customer/screens/home.dart';
+import 'package:instaport_customer/screens/location_picker/location_picker.dart';
 import 'package:instaport_customer/screens/order_form.dart';
 import 'package:http/http.dart' as http;
 import 'package:instaport_customer/services/location_service.dart';
+import 'package:instaport_customer/utils/mask_fomatter.dart';
+import 'package:instaport_customer/utils/timeformatter.dart';
+import 'package:instaport_customer/utils/validator.dart';
 
 class Neworder extends StatefulWidget {
   const Neworder({super.key});
@@ -81,7 +88,7 @@ class _NeworderState extends State<Neworder> {
   }
 
   void handlePreFetch() async {
-    final AddressController addressController = Get.find();
+    final AddressController addressController = Get.put(AddressController());
     double totalDistance = 0;
     double totalAmount = 0;
     var response = await http.get(Uri.parse("$apiUrl/price/get"));
@@ -129,7 +136,6 @@ class _NeworderState extends State<Neworder> {
     }
     setState(() {
       final OrderController orderController = Get.find();
-      print(totalDistance);
       if (totalDistance <= 1.0) {
         var finalAmount =
             orderController.currentorder.parcel_weight == items[0] ||
@@ -149,18 +155,577 @@ class _NeworderState extends State<Neworder> {
                 : orderController.currentorder.parcel_weight == items[2]
                     ? totalAmount + 50 + data.priceManipulation.baseOrderCharges
                     : orderController.currentorder.parcel_weight == items[3]
-                        ? totalAmount + 100 + data.priceManipulation.baseOrderCharges
-                        : totalAmount + 150 + data.priceManipulation.baseOrderCharges;
+                        ? totalAmount +
+                            100 +
+                            data.priceManipulation.baseOrderCharges
+                        : totalAmount +
+                            150 +
+                            data.priceManipulation.baseOrderCharges;
         amount = finalAmount;
       }
+      print(amount);
       predictionLoading = false;
     });
+  }
+
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _phonecontroller = TextEditingController();
+  final TextEditingController _instructioncontroller = TextEditingController();
+  final TextEditingController _buildingcontroller = TextEditingController();
+  final TextEditingController _floorcontroller = TextEditingController();
+  final TextEditingController _addresscontroller = TextEditingController();
+  final TextEditingController _namecontroller = TextEditingController();
+  final TextEditingController _datecontroller = TextEditingController();
+  final TextEditingController _fromtimecontroller = TextEditingController();
+  final TextEditingController _totimecontroller = TextEditingController();
+  @override
+  void dispose() {
+    _datetimefocusnode.dispose();
+    super.dispose();
+  }
+
+  void _removeFocus() {
+    _datetimefocusnode.unfocus();
+  }
+
+  final FocusNode _datetimefocusnode = FocusNode();
+
+  Future<void> _selectDateTime(
+    BuildContext context,
+    TextEditingController controller,
+    String type,
+  ) async {
+    DateTime selectedDateTime = DateTime.now();
+    if (type == "date") {
+      final DateTime? pickedDate = await showDatePicker(
+        context: context,
+        initialDate: selectedDateTime,
+        firstDate: DateTime.now(),
+        lastDate: DateTime(2100),
+      );
+      if (pickedDate != null) {
+        setState(() {
+          controller.text =
+              readTimestampAsDate(pickedDate.millisecondsSinceEpoch);
+        });
+      }
+    } else if (type == "time") {
+      final TimeOfDay? pickedTime = await showTimePicker(
+        context: context,
+        initialEntryMode: TimePickerEntryMode.inputOnly,
+        initialTime: TimeOfDay.fromDateTime(selectedDateTime),
+      );
+      if (pickedTime != null) {
+        setState(() {
+          selectedDateTime = DateTime(
+            selectedDateTime.year,
+            selectedDateTime.month,
+            selectedDateTime.day,
+            pickedTime.hour,
+            pickedTime.minute,
+          );
+          controller.text =
+              readTimestampAsTime(selectedDateTime.millisecondsSinceEpoch);
+        });
+      }
+    }
+  }
+
+  void _openBottomSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (BuildContext context) {
+        return SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 20),
+          physics: const BouncingScrollPhysics(),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                const Label(label: "Name: "),
+                TextFormField(
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Invalid name';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.name,
+                  controller: _namecontroller,
+                  style: GoogleFonts.poppins(
+                    color: Colors.black,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintText: "Enter your name",
+                    hintStyle: GoogleFonts.poppins(
+                      fontSize: 14,
+                      color: Colors.black38,
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(width: 2, color: Colors.red),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(width: 2, color: accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 15),
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                const Label(label: "Phone Number: "),
+                TextFormField(
+                  validator: (value) => validatePhoneNumber(value!),
+                  inputFormatters: [phoneNumberMask],
+                  autovalidateMode: AutovalidateMode.onUserInteraction,
+                  controller: _phonecontroller,
+                  keyboardType: TextInputType.phone,
+                  style: GoogleFonts.poppins(
+                    color: Colors.black,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    suffixIcon: ContactPickerWidget(
+                      textcontroller: _phonecontroller,
+                    ),
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintText: "Enter your phone number",
+                    hintStyle: GoogleFonts.poppins(
+                        fontSize: 14, color: Colors.black38),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                        width: 2,
+                        color: Colors.black.withOpacity(0.1),
+                      ),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(width: 2, color: Colors.red),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(width: 2, color: accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 15),
+                  ),
+                ),
+                if (orderController.currentorder.delivery_type == "scheduled")
+                  const SizedBox(
+                    height: 10,
+                  ),
+                if (orderController.currentorder.delivery_type == "scheduled")
+                  const Label(label: "When to arrive at this address: "),
+                if (orderController.currentorder.delivery_type == "scheduled")
+                  TextFormField(
+                    validator: (value) {
+                      if (orderController.currentorder.delivery_type ==
+                          "scheduled") {
+                        if (value == null || value.isEmpty) {
+                          return 'Invalid date';
+                        }
+                      }
+                      return null;
+                    },
+                    keyboardType: TextInputType.number,
+                    autovalidateMode: AutovalidateMode.onUserInteraction,
+                    inputFormatters: [dateMask],
+                    controller: _datecontroller,
+                    style: GoogleFonts.poppins(
+                      color: Colors.black,
+                      fontSize: 13,
+                    ),
+                    decoration: InputDecoration(
+                      suffixIcon: IconButton(
+                        onPressed: () => _selectDateTime(
+                          context,
+                          _datecontroller,
+                          "date",
+                        ),
+                        icon: const Icon(
+                          Icons.calendar_today_outlined,
+                          color: Colors.black,
+                          size: 18,
+                        ),
+                      ),
+                      fillColor: Colors.white,
+                      filled: true,
+                      hintText: "Date",
+                      hintStyle: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.black38,
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                            width: 2, color: Colors.black.withOpacity(0.1)),
+                      ),
+                      errorBorder: OutlineInputBorder(
+                        borderSide:
+                            const BorderSide(width: 2, color: Colors.red),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide(
+                            width: 2, color: Colors.black.withOpacity(0.1)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          width: 2,
+                          color: accentColor,
+                        ),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        vertical: 15,
+                        horizontal: 15,
+                      ),
+                    ),
+                  ),
+                if (orderController.currentorder.delivery_type == "scheduled")
+                  SizedBox(
+                    height: 10,
+                  ),
+                if (orderController.currentorder.delivery_type == "scheduled")
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          validator: (value) {
+                            if (orderController.currentorder.delivery_type ==
+                                "scheduled") {
+                              if (value == null || value.isEmpty) {
+                                return 'Invalid time';
+                              }
+                            }
+                            return null;
+                          },
+                          keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          inputFormatters: [timeMask],
+                          controller: _fromtimecontroller,
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: 13,
+                          ),
+                          decoration: InputDecoration(
+                            suffixIcon: IconButton(
+                              onPressed: () => _selectDateTime(
+                                  context, _fromtimecontroller, "time"),
+                              icon: const Icon(
+                                Icons.av_timer_rounded,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                            ),
+                            fillColor: Colors.white,
+                            filled: true,
+                            hintText: "Enter your time range",
+                            hintStyle: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black38,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                  width: 2,
+                                  color: Colors.black.withOpacity(0.1)),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderSide:
+                                  const BorderSide(width: 2, color: Colors.red),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                  width: 2,
+                                  color: Colors.black.withOpacity(0.1)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: accentColor,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 15,
+                              horizontal: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        width: 8,
+                      ),
+                      Expanded(
+                        child: TextFormField(
+                          validator: (value) {
+                            if (orderController.currentorder.delivery_type ==
+                                "scheduled") {
+                              if (value == null || value.isEmpty) {
+                                return 'Invalid time';
+                              }
+                            }
+                            return null;
+                          },
+                          keyboardType: TextInputType.number,
+                          autovalidateMode: AutovalidateMode.onUserInteraction,
+                          inputFormatters: [timeMask],
+                          controller: _totimecontroller,
+                          style: GoogleFonts.poppins(
+                            color: Colors.black,
+                            fontSize: 13,
+                          ),
+                          decoration: InputDecoration(
+                            suffixIcon: IconButton(
+                              onPressed: () => _selectDateTime(
+                                  context, _totimecontroller, "time"),
+                              icon: const Icon(
+                                Icons.av_timer_rounded,
+                                color: Colors.black,
+                                size: 20,
+                              ),
+                            ),
+                            fillColor: Colors.white,
+                            filled: true,
+                            hintText: "Enter your time range",
+                            hintStyle: GoogleFonts.poppins(
+                              fontSize: 14,
+                              color: Colors.black38,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                  width: 2,
+                                  color: Colors.black.withOpacity(0.1)),
+                            ),
+                            errorBorder: OutlineInputBorder(
+                              borderSide:
+                                  const BorderSide(width: 2, color: Colors.red),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: BorderSide(
+                                  width: 2,
+                                  color: Colors.black.withOpacity(0.1)),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide: const BorderSide(
+                                width: 2,
+                                color: accentColor,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(
+                              vertical: 15,
+                              horizontal: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                const SizedBox(
+                  height: 10,
+                ),
+                const Label(label: "Address: "),
+                TextFormField(
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Invalid address';
+                    } else if (value.length < 5) {
+                      return 'Address length should be atleast 5 characters long!';
+                    }
+                    return null;
+                  },
+                  keyboardType: TextInputType.text,
+                  controller: _addresscontroller,
+                  style: GoogleFonts.poppins(
+                    color: Colors.black,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintText: "Enter your address",
+                    hintStyle: GoogleFonts.poppins(
+                        fontSize: 14, color: Colors.black38),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderSide: const BorderSide(width: 2, color: Colors.red),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(width: 2, color: accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 15),
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                const Label(label: "Building Name / Flat No: "),
+                TextFormField(
+                  keyboardType: TextInputType.text,
+                  controller: _buildingcontroller,
+                  style: GoogleFonts.poppins(
+                    color: Colors.black,
+                    fontSize: 13,
+                  ),
+                  decoration: InputDecoration(
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintText: "Enter your building name & flat no.",
+                    hintStyle: GoogleFonts.poppins(
+                        fontSize: 14, color: Colors.black38),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(width: 2, color: accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 15),
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                const Label(label: "Floor / Wing: "),
+                TextFormField(
+                  keyboardType: TextInputType.text,
+                  style: GoogleFonts.poppins(
+                    color: Colors.black,
+                    fontSize: 13,
+                  ),
+                  controller: _floorcontroller,
+                  decoration: InputDecoration(
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintText: "Enter your floor & wing.",
+                    hintStyle: GoogleFonts.poppins(
+                        fontSize: 14, color: Colors.black38),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(width: 2, color: accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      vertical: 15,
+                      horizontal: 15,
+                    ),
+                  ),
+                ),
+                const SizedBox(
+                  height: 10,
+                ),
+                const Label(label: "Instructions: "),
+                TextFormField(
+                  keyboardType: TextInputType.text,
+                  style: GoogleFonts.poppins(
+                    color: Colors.black,
+                    fontSize: 13,
+                  ),
+                  controller: _instructioncontroller,
+                  decoration: InputDecoration(
+                    fillColor: Colors.white,
+                    filled: true,
+                    hintText: "Enter some instructions",
+                    hintStyle: GoogleFonts.poppins(
+                        fontSize: 14, color: Colors.black38),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide: BorderSide(
+                          width: 2, color: Colors.black.withOpacity(0.1)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(10),
+                      borderSide:
+                          const BorderSide(width: 2, color: accentColor),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                        vertical: 15, horizontal: 15),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    ).then((value) {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: false,
       backgroundColor: Colors.white,
       appBar: AppBar(
         toolbarHeight: 60,
@@ -392,19 +957,30 @@ class _NeworderState extends State<Neworder> {
                             builder: (controller) {
                               return Column(
                                 children: [
+                                  GestureDetector(
+                                    child: AddressContainer(
+                                        latitude: controller.pickup.latitude,
+                                        longitude: controller.pickup.longitude,
+                                        key: Key((0).toString()),
+                                        title: "Pickup Address",
+                                        address: controller.pickup,
+                                        index: 0,
+                                        subtitle: controller
+                                                .pickup.text.isNotEmpty
+                                            ? controller.pickup.text
+                                            : "Add a pickup address for the courier"),
+                                  ),
                                   AddressContainer(
-                                      key: Key((0).toString()),
-                                      title: "Pickup Address",
-                                      address: controller.pickup,
-                                      index: 0,
-                                      subtitle:
-                                          "Add a pickup address for the courier"),
-                                  AddressContainer(
+                                    latitude: controller.drop.latitude,
+                                    longitude: controller.drop.longitude,
                                     key: Key((1).toString()),
                                     title: "Drop address",
                                     address: controller.drop,
                                     index: 1,
-                                    subtitle:
+                                    handleClick: _openBottomSheet,
+                                  subtitle: controller
+                                                .drop.text.isNotEmpty
+                                            ? controller.drop.text :
                                         "Add a drop address for the courier",
                                   ),
                                   ...controller.droplocations
@@ -412,16 +988,22 @@ class _NeworderState extends State<Neworder> {
                                       .entries
                                       .map(
                                         (e) => AddressContainer(
+                                          latitude: e.value.latitude,
+                                          longitude: e.value.longitude,
                                           key: Key((e.key + 2).toString()),
                                           title: "Drop address",
                                           address: e.value,
-                                          subtitle:
+                                            subtitle: e.value.text.isNotEmpty
+                                            ? e.value.text :
                                               "Add a drop address for the courier",
                                           index: e.key + 2,
                                         ),
                                       )
                                       .toList(),
                                   AddressContainer(
+                                    index: -10,
+                                    latitude: 0.0,
+                                    longitude: 0.0,
                                     key: const Key("Add delivery address"),
                                     title: "Add a delivery address",
                                     address: controller.pickup,

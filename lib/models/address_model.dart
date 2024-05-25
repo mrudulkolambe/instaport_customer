@@ -33,8 +33,8 @@ class Address {
 
   factory Address.fromJson(dynamic json) {
     final text = json['text'] as String;
-    final latitude = json['latitude'] as double;
-    final longitude = json['longitude'] as double;
+    final latitude = json['latitude'] + 0.0 as double;
+    final longitude = json['longitude'] + 0.0 as double;
     final building_and_flat = json['building_and_flat'] as String;
     final floor_and_wing = json['floor_and_wing'] as String;
     final instructions = json['instructions'] as String;

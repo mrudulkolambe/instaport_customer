@@ -49,6 +49,7 @@ class Orders {
   Address pickup;
   Address drop;
   List<Address> droplocations;
+  List<double> distances;
   String id;
   String delivery_type;
   String parcel_weight;
@@ -69,6 +70,7 @@ class Orders {
 
   Orders({
     required this.pickup,
+    required this.distances,
     required this.drop,
     required this.id,
     required this.droplocations,
@@ -92,6 +94,8 @@ class Orders {
 
   factory Orders.fromJson(dynamic json) {
     final pickup = Address.fromJson(json['pickup']);
+    print(json["distances"]);
+    final distances = List.from(json["distances"]).map((e) => e + 0.0 as double).toList();
     final drop = Address.fromJson(json['drop']);
     final orderStatus = List.from(json["orderStatus"]).map((e) {
       return OrderStatus.fromJson(e);
@@ -121,6 +125,7 @@ class Orders {
     return Orders(
       pickup: pickup,
       drop: drop,
+      distances: distances,
       id: id,
       delivery_type: delivery_type,
       parcel_weight: parcel_weight,
@@ -149,6 +154,7 @@ class Orders {
       'id': id,
       'delivery_type': delivery_type,
       'parcel_weight': parcel_weight,
+      'distances': distances,
       'phone_number': phone_number,
       'notify_sms': notify_sms,
       'courier_bag': courier_bag,

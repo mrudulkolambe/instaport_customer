@@ -335,16 +335,16 @@ class _AddressDetailsScreenState extends State<AddressDetailsScreen> {
             )
           ],
         ),
-        if (widget.type == "cod" &&
-            widget.paymentAddress != null &&
-            widget.address.key == widget.paymentAddress!.key)
-          Text(
-            "Collect Rs. ${widget.amount.toPrecision(2)} from here.",
-            style: GoogleFonts.poppins(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        // if (widget.type == "cod" &&
+        //     widget.paymentAddress != null &&
+        //     widget.address.key == widget.paymentAddress!.key)
+        //   Text(
+        //     "Collect Rs. ${widget.amount.toPrecision(2)} from here.",
+        //     style: GoogleFonts.poppins(
+        //       fontSize: 14,
+        //       fontWeight: FontWeight.bold,
+        //     ),
+        //   ),
       ],
     );
   }

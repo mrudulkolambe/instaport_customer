@@ -1,5 +1,6 @@
 // ignore_for_file: unnecessary_null_comparison
 
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:firebase_database/firebase_database.dart';
@@ -43,6 +44,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
   Key _columnkey = UniqueKey();
   double oldAmount = 0.0;
   List<bool> _isOpen = [];
+  List<double> distances = [];
   final TextEditingController _phonenumbercontroller = TextEditingController();
   final TextEditingController _parcelvaluecontroller = TextEditingController();
   final TextEditingController _packagecontroller = TextEditingController();
@@ -52,6 +54,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
   final FocusNode _focusNode = FocusNode();
   List<Place> places = [];
   bool updateLoading = false;
+    Timer? _debounce;
   Address? paymentAddress;
 
   @override
@@ -119,6 +122,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
           "_id": order!.id,
           "pickup": address.first,
           "drop": address[1],
+          "distances": distances,
           "droplocations": mAddress.isEmpty ? [] : mAddress,
           "parcel_weight": dropdownValue,
           "phone_number": _phonenumbercontroller.text,
@@ -132,6 +136,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
         request.body = json.encode({
           "_id": order!.id,
           "pickup": address.first,
+          "distances": distances,
           "drop": address[1],
           "droplocations": mAddress.isEmpty ? [] : mAddress,
           "parcel_weight": dropdownValue,
@@ -171,6 +176,10 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
   Key _dropdownkey = UniqueKey();
 
   Future<double> handlePreFetch() async {
+    setState(() {
+      distances = [];
+    });
+
     double totalDistance = 0;
     double totalAmount = 0;
     var response = await http.get(Uri.parse("$apiUrl/price/get"));
@@ -185,6 +194,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
       address[1].longitude,
     );
     totalDistance = (distanceMain.rows[0].elements[0].distance.value / 1000);
+    distances.add(totalDistance);
     totalAmount = (distanceMain.rows[0].elements[0].distance.value / 1000) *
         data.priceManipulation.perKilometerCharge;
     if (mAddress.isNotEmpty) {
@@ -203,6 +213,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
         }
         var locationData = await LocationService()
             .fetchDistance(srcLat, srcLng, destLat, destLng);
+        distances.add(locationData.rows[0].elements[0].distance.value / 1000);
         totalDistance += locationData.rows[0].elements[0].distance.value / 1000;
         totalAmount +=
             (locationData.rows[0].elements[0].distance.value / 1000) *
@@ -238,8 +249,9 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
     if (result) {
       setState(() {
         if (paymentAddress != null &&
-            address[index].key == paymentAddress!.key && order!.payment_method == "cod") {
-              paymentAddress = address[1];
+            address[index].key == paymentAddress!.key &&
+            order!.payment_method == "cod") {
+          paymentAddress = address[1];
           address.removeAt(index);
         } else {
           address.removeAt(index);
@@ -269,6 +281,12 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
     setState(() {
       address.add(initialAddress);
     });
+  }
+
+    @override
+  void dispose() {
+    _debounce?.cancel();
+    super.dispose();
   }
 
   @override
@@ -601,12 +619,23 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                                     initialValue: e.value.text,
                                                     onChanged: check.isEmpty
                                                         ? (String value) async {
-                                                            final data =
-                                                                await LocationService()
-                                                                    .fetchPlaces(
-                                                                        value);
-                                                            setState(() {
-                                                              places = data;
+                                                            if (_debounce
+                                                                    ?.isActive ??
+                                                                false)
+                                                              _debounce!
+                                                                  .cancel();
+                                                            _debounce = Timer(
+                                                                const Duration(
+                                                                    milliseconds:
+                                                                        500),
+                                                                () async {
+                                                              final data =
+                                                                  await LocationService()
+                                                                      .fetchPlaces(
+                                                                          value);
+                                                              setState(() {
+                                                                places = data;
+                                                              });
                                                             });
                                                           }
                                                         : null,

@@ -9,8 +9,8 @@ class RiderLocation {
 
   factory RiderLocation.fromJson(Map<String, dynamic> json) {
     return RiderLocation(
-      latitude: json['latitude'] as double,
-      longitude: json['longitude'] as double,
+      latitude: json['latitude'] + 0.0  as double,
+      longitude: json['longitude'] + 0.0 as double,
     );
   }
 }

@@ -47,31 +47,30 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyA0flwMGejg7rrLkGqs3D7qonB8H9E8Uxc',
-    appId: '1:62094269732:web:a58b2a941f9af5f338a7b1',
-    messagingSenderId: '62094269732',
-    projectId: 'instaport-application',
-    authDomain: 'instaport-application.firebaseapp.com',
-    databaseURL: 'https://instaport-application-default-rtdb.firebaseio.com',
-    storageBucket: 'instaport-application.appspot.com',
+    apiKey: 'AIzaSyDRgkAAZ2SIvYC-EPHw7DDDEFUsJDbScKA',
+    appId: '1:209395485323:web:56f1a35285e09bdbf1a28e',
+    messagingSenderId: '209395485323',
+    projectId: 'instaport-main',
+    authDomain: 'instaport-main.firebaseapp.com',
+    storageBucket: 'instaport-main.appspot.com',
+    measurementId: 'G-JYW2EG9MPB',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyAp6a0NJIJFdO6e8BXS-eypMnC0XpDMaCE',
-    appId: '1:62094269732:android:956fdd2303f2c5c938a7b1',
-    messagingSenderId: '62094269732',
-    projectId: 'instaport-application',
-    databaseURL: 'https://instaport-application-default-rtdb.firebaseio.com',
-    storageBucket: 'instaport-application.appspot.com',
+    apiKey: 'AIzaSyAcyS-03eWA8hCJ6ZMBm-Q_jbW7ymVKrR0',
+    appId: '1:209395485323:android:880929315dbe7b3cf1a28e',
+    messagingSenderId: '209395485323',
+    projectId: 'instaport-main',
+    storageBucket: 'instaport-main.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyApi9B0kXUWpzSFHcp2z182KunJ0bJZugU',
-    appId: '1:62094269732:ios:6c2b441864db1ada38a7b1',
-    messagingSenderId: '62094269732',
-    projectId: 'instaport-application',
-    databaseURL: 'https://instaport-application-default-rtdb.firebaseio.com',
-    storageBucket: 'instaport-application.appspot.com',
+    apiKey: 'AIzaSyB-NjrNn9b_MRQYXVq6eKHqgoS6wK2JIW0',
+    appId: '1:209395485323:ios:e506b7df20fdec48f1a28e',
+    messagingSenderId: '209395485323',
+    projectId: 'instaport-main',
+    storageBucket: 'instaport-main.appspot.com',
     iosBundleId: 'com.instaport.customer',
   );
+
 }
