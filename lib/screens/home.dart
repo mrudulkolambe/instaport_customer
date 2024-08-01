@@ -21,6 +21,7 @@ class _HomeState extends State<Home> {
         return false;
       },
       child: Scaffold(
+        backgroundColor: Colors.white,
         bottomNavigationBar: const CustomBottomNavigationBar(),
         body: SafeArea(
             child: Row(

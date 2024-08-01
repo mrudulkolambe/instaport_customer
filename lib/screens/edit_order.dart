@@ -54,8 +54,9 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
   final FocusNode _focusNode = FocusNode();
   List<Place> places = [];
   bool updateLoading = false;
-    Timer? _debounce;
+  Timer? _debounce;
   Address? paymentAddress;
+  List<TextEditingController> controllers = [];
 
   @override
   void initState() {
@@ -92,6 +93,9 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
           address.add(data.order.pickup);
           address.add(data.order.drop);
           address.addAll(data.order.droplocations);
+          controllers = address
+              .map((item) => TextEditingController(text: item.text))
+              .toList();
           paymentAddress = data.order.payment_address;
         });
       } else {}
@@ -283,7 +287,7 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
     });
   }
 
-    @override
+  @override
   void dispose() {
     _debounce?.cancel();
     super.dispose();
@@ -605,6 +609,8 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                                   const Label(
                                                       label: "Google Map: "),
                                                   TextFormField(
+                                                    controller:
+                                                        controllers[e.key],
                                                     validator: (value) {
                                                       if (value == null ||
                                                           value.isEmpty) {
@@ -616,7 +622,6 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                                         AutovalidateMode
                                                             .onUserInteraction,
                                                     enabled: check.isEmpty,
-                                                    initialValue: e.value.text,
                                                     onChanged: check.isEmpty
                                                         ? (String value) async {
                                                             if (_debounce
@@ -652,6 +657,12 @@ class _EditOrderDetailsState extends State<EditOrderDetails> {
                                                               color: Colors
                                                                   .black38),
                                                       fillColor: Colors.white,
+                                                      suffixIcon: IconButton(
+                                                        onPressed: () {
+                                                          controllers[e.key].text = "";
+                                                        },
+                                                        icon: Icon(Icons.clear),
+                                                      ),
                                                       filled: true,
                                                       errorBorder:
                                                           OutlineInputBorder(
