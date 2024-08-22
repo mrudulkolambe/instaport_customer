@@ -314,9 +314,9 @@ class _PaymentFormState extends State<PaymentForm> {
           DatabaseReference ref =
               FirebaseDatabase.instance.ref("orders/${orderData.order.id}");
           await ref.set({"order": data["order"], "modified": ""});
-          // Get.dialog(const OrderSuccessDialog(), barrierDismissible: false);
-          // orderController.resetFields();
-          // addressController.resetfields();
+          Get.dialog(const OrderSuccessDialog(), barrierDismissible: false);
+          orderController.resetFields();
+          addressController.resetfields();
           print("https://instaport-transactions.vercel.app/order.html?token=$token&order=${orderData.order.id}&amount=${orderData.order.amount}");
           Get.to(() => BillDeskPayment(url: "https://instaport-transactions.vercel.app/order.html?token=$token&order=${orderData.order.id}&amount=${orderData.order.amount}", order: orderData.order,));
         }

@@ -31,7 +31,8 @@ void main() async {
   runApp(const MyApp());
 }
 
-const apiUrl = "https://instaport-backend-main.vercel.app";
+const apiUrl = "http://192.168.0.105:1000";
+// const apiUrl = "https://instaport-backend-main.vercel.app";
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});

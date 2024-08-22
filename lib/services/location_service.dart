@@ -11,7 +11,7 @@ class LocationService {
 
   Future<List<Place>> fetchPlaces(String input) async {
     final String endpoint =
-        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$key&components=country:in';
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json?input=$input&key=$key&components=country:in&location=19.059984,72.889999&radius=60000';
     print(endpoint);
     final response = await http.get(Uri.parse(endpoint));
 
@@ -19,6 +19,7 @@ class LocationService {
       final predictions =
           jsonDecode(response.body)['predictions'] as List<dynamic>;
       List<Place> places = predictions.map((prediction) {
+        print(prediction);
         return Place.fromJson(prediction);
       }).toList();
       return places;
