@@ -18,12 +18,13 @@ class Rider {
   });
 
   factory Rider.fromJson(dynamic json) {
+    print(json["image"]);
     final id = json['_id'] as String;
     final fullname = json['fullname'] as String;
     final mobileno = json['mobileno'] as String;
     final role = json['role'] as String;
     final age = json['age'] as String;
-    final image = json["image"] as String;
+    final image = json["image"] == null ? "" : json["image"]["url"] as String;
 
     return Rider(
       id: id,
