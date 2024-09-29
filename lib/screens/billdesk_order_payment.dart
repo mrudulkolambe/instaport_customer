@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BillDeskOrderPayment extends StatefulWidget {
   final String url;
@@ -27,6 +28,12 @@ class _BillDeskOrderPaymentState extends State<BillDeskOrderPayment> {
     }
   }
 
+  bool isInAppLink(String url) {
+    // Define logic to determine whether the link is an in-app link
+    // For example, you might allow all links within the same domain
+    return url.contains('upi:');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -36,9 +43,25 @@ class _BillDeskOrderPaymentState extends State<BillDeskOrderPayment> {
           height: MediaQuery.of(context).size.height,
           child: InAppWebView(
             initialUrlRequest: URLRequest(
-              url: Uri.parse(widget.url),
+              url: WebUri(widget.url),
             ),
-            shouldOverrideUrlLoading: (controller, request) async {
+            shouldOverrideUrlLoading: (controller, navigationAction) async {
+              var url = navigationAction.request.url.toString();
+              print("Trying to load: $url");
+
+              // Check if the URL is an external link or in-app link
+              if (url.startsWith('http') || url.startsWith('https')) {
+                if (isInAppLink(url)) {
+                  // In-app link: Load it within the WebView
+                  return NavigationActionPolicy.CANCEL;
+                } else {
+                  // External link: Open it in an external browser
+                  if (await canLaunch(url)) {
+                    await launch(url);
+                  }
+                  return NavigationActionPolicy.CANCEL; // Don't load in WebView
+                }
+              }
               return NavigationActionPolicy.ALLOW;
             },
             initialOptions: InAppWebViewGroupOptions(
@@ -64,21 +87,45 @@ class _BillDeskOrderPaymentState extends State<BillDeskOrderPayment> {
               ),
             ),
             onWebViewCreated: (controller) {
+              print("WebView Created");
               webView = controller;
               _setupJavaScriptHandler();
             },
             onLoadStart: (controller, url) {
-              setState(() {});
+              print("Page started loading: $url");
+              _handleUrlChange(url.toString());
             },
-            onConsoleMessage: (controller, consoleMessage) {
-              print("Message: ${consoleMessage.message}");
+            onLoadStop: (controller, url) async {
+              print("Page finished loading: $url");
+              _handleUrlChange(url.toString());
             },
-            onLoadStop: (controller, url) {
-              setState(() {});
+            onUpdateVisitedHistory: (controller, url, isReload) {
+              print("URL changed: $url");
+              _handleUrlChange(url.toString());
             },
           ),
         ),
       ),
     );
+  }
+
+  void _handleUrlChange(String url) {
+    // Trigger your event or action here
+    if (url.startsWith('upi://')) {
+      print(url);
+      // Handle UPI payment URL
+      _launchUPI(url);
+    } else {
+      // Handle other URL changes
+      print('URL changed to: $url');
+    }
+  }
+
+  void _launchUPI(String url) async {
+    if (await canLaunchUrl(Uri.parse(url))) {
+      await launchUrl(Uri.parse(url));
+    } else {
+      print('Could not launch UPI URL: $url');
+    }
   }
 }

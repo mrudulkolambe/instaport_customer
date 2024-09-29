@@ -77,7 +77,7 @@ class _VerificationState extends State<Verification> {
                 height: MediaQuery.of(context).size.height,
                 child: InAppWebView(
                   initialUrlRequest: URLRequest(
-                    url: Uri.parse(
+                    url: WebUri(
                         "https://instaport-transactions.vercel.app/user-otp/index.html?phone=${userData.user.mobileno.replaceAll(" ", "")}&token=$token"),
                   ),
                   shouldOverrideUrlLoading: (controller, request) async {

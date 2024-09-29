@@ -38,7 +38,7 @@ class _TestWebViewState extends State<TestWebView> {
           children: [
             InAppWebView(
               initialUrlRequest: URLRequest(
-                url: Uri.parse(
+                url: WebUri(
                     'https://instaport-transactions.vercel.app/?token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2NTYzMTZiNTdiMzJlMGNlODkxYjk2MzEiLCJyb2xlIjoiY3VzdG9tZXIiLCJpYXQiOjE3MDE2NzIzOTd9.ED4KSGbWiDYKcVQJylXawGYwPZtL9hOvsUhis2tYYEc'),
               ),
               shouldOverrideUrlLoading: (controller, request) async {

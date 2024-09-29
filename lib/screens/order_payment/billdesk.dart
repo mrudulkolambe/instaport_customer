@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:get/get.dart';
@@ -15,7 +16,6 @@ class BillDeskPayment extends StatefulWidget {
   @override
   State<BillDeskPayment> createState() => _BillDeskPaymentState();
 }
-
 
 class _BillDeskPaymentState extends State<BillDeskPayment> {
   final UserController userController = Get.put(UserController());
@@ -38,7 +38,6 @@ class _BillDeskPaymentState extends State<BillDeskPayment> {
     Get.to(() => const PastOrders());
   }
 
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,47 +49,40 @@ class _BillDeskPaymentState extends State<BillDeskPayment> {
             height: MediaQuery.of(context).size.height,
             child: InAppWebView(
               initialUrlRequest: URLRequest(
-                url: Uri.parse(widget.url),
+                url: WebUri(widget.url),
               ),
               shouldOverrideUrlLoading: (controller, request) async {
                 return NavigationActionPolicy.ALLOW;
               },
-              initialOptions: InAppWebViewGroupOptions(
-                crossPlatform: InAppWebViewOptions(
-                  supportZoom: false,
-                  clearCache: true,
-                  javaScriptEnabled: true,
-                  javaScriptCanOpenWindowsAutomatically: true,
-                  mediaPlaybackRequiresUserGesture: false,
-                ),
-                android: AndroidInAppWebViewOptions(
-                  mixedContentMode:
-                      AndroidMixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
-                  thirdPartyCookiesEnabled: true,
-                ),
-                ios: IOSInAppWebViewOptions(
-                  allowsInlineMediaPlayback: true,
-                  allowsAirPlayForMediaPlayback: true,
-                  allowsBackForwardNavigationGestures: true,
-                  allowsLinkPreview: true,
-                  isFraudulentWebsiteWarningEnabled: true,
-                  suppressesIncrementalRendering: false,
-                ),
+              initialSettings: InAppWebViewSettings(
+                isInspectable: kDebugMode,
+                supportZoom: false,
+                clearCache: true,
+                javaScriptEnabled: true,
+                javaScriptCanOpenWindowsAutomatically: true,
+                mediaPlaybackRequiresUserGesture: false,
+                allowsLinkPreview: true,
+                mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW,
+                thirdPartyCookiesEnabled: true,
+                allowsInlineMediaPlayback: true,
+                allowsAirPlayForMediaPlayback: true,
+                allowsBackForwardNavigationGestures: true,
+                isFraudulentWebsiteWarningEnabled: true,
+                suppressesIncrementalRendering: false,
               ),
               onWebViewCreated: (controller) {
                 webView = controller;
                 _setupJavaScriptHandler();
               },
               onLoadStart: (controller, url) {
-                setState(() {
-                });
+                print("STARTED: " + url!.path);
+                setState(() {});
               },
               onConsoleMessage: (controller, consoleMessage) {
                 print("Message: ${consoleMessage.message}");
               },
               onLoadStop: (controller, url) {
-                setState(() {
-                });
+                setState(() {});
               },
             ),
           ),
