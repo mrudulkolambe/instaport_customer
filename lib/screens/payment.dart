@@ -42,11 +42,11 @@ class _PaymentFormState extends State<PaymentForm> {
   TextEditingController couponController = TextEditingController();
   double commission = 0;
   bool fetchLoading = true;
-  double amount = 0;
+  int amount = 0;
   int paymentindex = 0;
   bool showpg = false;
   InAppWebViewController? webView;
-  double discount = 0.0;
+  int discount = 0;
   Address? codAddress;
   User? customer;
   List<double> distances = [];
@@ -115,7 +115,7 @@ class _PaymentFormState extends State<PaymentForm> {
                     : orderController.currentorder.parcel_weight == items[3]
                         ? data.priceManipulation.baseOrderCharges + 100
                         : data.priceManipulation.baseOrderCharges + 150;
-        amount = finalAmount;
+        amount = finalAmount.round();
       } else {
         var finalAmount =
             orderController.currentorder.parcel_weight == items[0] ||
@@ -130,7 +130,7 @@ class _PaymentFormState extends State<PaymentForm> {
                         : totalAmount +
                             150 +
                             data.priceManipulation.baseOrderCharges;
-        amount = finalAmount;
+        amount = finalAmount.round();
       }
       print(distances);
       fetchLoading = false;
@@ -170,7 +170,7 @@ class _PaymentFormState extends State<PaymentForm> {
       if (couponData.error) {
         GetSnackbar.info(couponData.message);
         couponController.text = '';
-        discount = 0.0;
+        discount = 0;
       } else {
         if (couponData.coupon.minimumCartValue > amount) {
           GetSnackbar.info(
@@ -181,7 +181,7 @@ class _PaymentFormState extends State<PaymentForm> {
           if (checkDiscount >= couponData.coupon.maxAmount) {
             discount = couponData.coupon.maxAmount;
           } else {
-            discount = checkDiscount;
+            discount = checkDiscount.round();
           }
         }
       }
@@ -278,6 +278,8 @@ class _PaymentFormState extends State<PaymentForm> {
             orderController.resetFields();
             addressController.resetfields();
           }
+          orderController.resetFields();
+          addressController.resetfields();
         } else {
           print(response.reasonPhrase);
         }
@@ -314,11 +316,15 @@ class _PaymentFormState extends State<PaymentForm> {
           DatabaseReference ref =
               FirebaseDatabase.instance.ref("orders/${orderData.order.id}");
           await ref.set({"order": data["order"], "modified": ""});
-          Get.dialog(const OrderSuccessDialog(), barrierDismissible: false);
           orderController.resetFields();
           addressController.resetfields();
-          print("https://instaport-transactions.vercel.app/order.html?token=$token&order=${orderData.order.id}&amount=${orderData.order.amount}");
-          Get.to(() => BillDeskPayment(url: "https://instaport-transactions.vercel.app/order.html?token=$token&order=${orderData.order.id}&amount=${orderData.order.amount}", order: orderData.order,));
+          print(
+              "https://instaport-transactions.vercel.app/order.html?token=$token&order=${orderData.order.id}&amount=${orderData.order.amount}");
+          Get.to(() => BillDeskPayment(
+                url:
+                    "https://instaport-transactions.vercel.app/order.html?token=$token&order=${orderData.order.id}&amount=${orderData.order.amount}",
+                order: orderData.order,
+              ));
         }
       } else {
         print(response.reasonPhrase);
@@ -870,7 +876,7 @@ class _PaymentFormState extends State<PaymentForm> {
                                   ),
                                 ),
                                 Text(
-                                  "Rs. ${amount.toPrecision(1)}",
+                                  "Rs. ${amount.round()}",
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
@@ -892,7 +898,7 @@ class _PaymentFormState extends State<PaymentForm> {
                                   ),
                                 ),
                                 Text(
-                                  "Rs. ${discount.toPrecision(1)}",
+                                  "Rs. ${discount.round()}",
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
@@ -914,7 +920,7 @@ class _PaymentFormState extends State<PaymentForm> {
                                   ),
                                 ),
                                 Text(
-                                  "Rs. ${(amount - discount).toPrecision(1)}",
+                                  "Rs. ${(amount - discount).round()}",
                                   style: GoogleFonts.poppins(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,

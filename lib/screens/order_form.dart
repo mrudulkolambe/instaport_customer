@@ -302,16 +302,16 @@ class _OrderFormState extends State<OrderForm> {
                     const SizedBox(
                       height: 10,
                     ),
-                    Text(
-                      "Safeguard your valuable items so that you may recover the value in the event of loss or damage during delivery. For this service, we charge a fee of 0.85%+GST of the value you declared above (added to the shipping cost). Up to 50,000 allowed",
-                      style: GoogleFonts.poppins(
-                        fontSize: 10,
-                        color: Colors.grey,
-                      ),
-                    ),
-                    const SizedBox(
-                      height: 10,
-                    ),
+                    // Text(
+                    //   "Safeguard your valuable items so that you may recover the value in the event of loss or damage during delivery. For this service, we charge a fee of 0.85%+GST of the value you declared above (added to the shipping cost). Up to 50,000 allowed",
+                    //   style: GoogleFonts.poppins(
+                    //     fontSize: 10,
+                    //     color: Colors.grey,
+                    //   ),
+                    // ),
+                    // const SizedBox(
+                    //   height: 10,
+                    // ),
                     const Label(label: "Phone number: "),
                     TextFormField(
                       validator: (value) => validatePhoneNumber(value!),

@@ -1045,7 +1045,7 @@ class _NeworderState extends State<Neworder> {
                                             : Text(
                                                 amount == 0.0
                                                     ? "Click here to calculate the estimated fare"
-                                                    : "Estimated Amount: ${amount.toPrecision(2)}",
+                                                    : "Estimated Amount: ${amount.round()}",
                                                 style: GoogleFonts.poppins(
                                                   color: Colors.black,
                                                   fontSize: 13,
